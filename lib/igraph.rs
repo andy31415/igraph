@@ -61,11 +61,27 @@ impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
             source,
             path: file_path.to_string_lossy().into(),
             message: "canonicalize",
-        })?;
+        })?;    
+
+        let args = value.arguments.unwrap_or_else(||
+            shlex::split(&value.command.unwrap()).unwrap()
+        );
+        
+        let include_directories = args.iter()
+            .filter_map(|a| a.strip_prefix("-I"))
+            .map(PathBuf::from)
+            .filter_map(|p| {
+                if p.is_relative() {
+                    start_dir.join(p).canonicalize().ok()
+                } else {
+                    Some(p)
+                }
+             })
+            .collect();
 
         Ok(SourceFileEntry {
             file_path,
-            include_directories: vec![],
+            include_directories,
         })
     }
 }
@@ -91,7 +107,15 @@ pub fn parse_compile_database(path: &str) -> Result<Vec<SourceFileEntry>, Error>
 
     Ok(raw_items
         .into_iter()
-        .map(|x| SourceFileEntry::try_from(x))
+        .filter(|e| 
+            e.file.ends_with(".cpp")
+            || e.file.ends_with(".cc")
+            || e.file.ends_with(".cxx")
+            || e.file.ends_with(".c")
+            || e.file.ends_with(".h")
+            || e.file.ends_with(".hpp")
+    )
+        .map(SourceFileEntry::try_from)
         .filter_map(|r| r.ok())
         .collect())
 }

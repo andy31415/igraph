@@ -23,7 +23,7 @@ fn main() -> Result<(), igraph::Error> {
 
     let stdout_log = tracing_subscriber::fmt::layer().compact();
     tracing_subscriber::registry()
-        .with(stdout_log.with_filter(args.log_level.unwrap_or(LevelFilter::TRACE)))
+        .with(stdout_log.with_filter(args.log_level.unwrap_or(LevelFilter::WARN)))
         .init();
 
     // Access data using struct fields
