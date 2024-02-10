@@ -25,13 +25,13 @@ fn main() -> Result<(), igraph::Error> {
 
     // Access data using struct fields
     for p in parse_compile_database(&args.compile_database)?
-            .iter()
-            .take(5) {
-        println!( "Item: {:#?}", p);
-        
+        .iter()
+        .take(5)
+    {
+        println!("Item: {:#?}", p);
+
         extract_includes(&p.file_path, &p.include_directories);
     }
-
 
     Ok(())
 }

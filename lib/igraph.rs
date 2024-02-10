@@ -133,7 +133,10 @@ pub fn parse_compile_database(path: &str) -> Result<Vec<SourceFileEntry>, Error>
         .collect())
 }
 
-pub fn extract_includes(path: &PathBuf, include_dirs: &Vec<PathBuf>) -> Result<Vec<PathBuf>, Error> {
+pub fn extract_includes(
+    path: &PathBuf,
+    _include_dirs: &Vec<PathBuf>,
+) -> Result<Vec<PathBuf>, Error> {
     let f = File::open(path).map_err(|source| Error::IOError {
         source,
         path: path.to_string_lossy().into(),
@@ -141,7 +144,7 @@ pub fn extract_includes(path: &PathBuf, include_dirs: &Vec<PathBuf>) -> Result<V
     })?;
 
     let reader = BufReader::new(f);
-    
+
     let inc_re = Regex::new(r##"^\s*#include\s*(["<])([^">]*)[">]"##).unwrap();
 
     for line in reader.lines() {
@@ -153,10 +156,14 @@ pub fn extract_includes(path: &PathBuf, include_dirs: &Vec<PathBuf>) -> Result<V
 
         if let Some(captures) = inc_re.captures(&line) {
             let inc_type = captures.get(1).unwrap().as_str();
-            info!("include: {} as {}", captures.get(2).unwrap().as_str(), inc_type);
+            info!(
+                "include: {} as {}",
+                captures.get(2).unwrap().as_str(),
+                inc_type
+            );
         }
     }
-    
+
     // TODO
     Ok(vec![])
 }
