@@ -30,7 +30,8 @@ fn main() -> Result<(), igraph::Error> {
     {
         println!("Item: {:#?}", p);
 
-        extract_includes(&p.file_path, &p.include_directories);
+        let includes = extract_includes(&p.file_path, &p.include_directories).unwrap();
+        println!("   Includes: {:#?}", includes);
     }
 
     Ok(())

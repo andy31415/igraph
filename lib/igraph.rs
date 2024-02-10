@@ -1,7 +1,5 @@
 use std::{
-    fs::File,
-    io::{BufRead, BufReader, Read as _},
-    path::PathBuf,
+    fs::File, io::{BufRead, BufReader, Read as _}, iter, path::PathBuf
 };
 
 use regex::Regex;
@@ -92,12 +90,10 @@ impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
     }
 }
 
-pub fn parse_includes(
-    _path: PathBuf,
-    _top_dir: PathBuf,
-    _include_dirs: Vec<PathBuf>,
-) -> Vec<PathBuf> {
-    todo!()
+/// Attempt to make the full path of head::tail
+/// returns None if that fails (e.g. path does not exist)
+fn try_resolve(head: &PathBuf, tail: &PathBuf) -> Option<PathBuf> {
+    head.join(tail).canonicalize().ok()
 }
 
 pub fn parse_compile_database(path: &str) -> Result<Vec<SourceFileEntry>, Error> {
@@ -135,7 +131,7 @@ pub fn parse_compile_database(path: &str) -> Result<Vec<SourceFileEntry>, Error>
 
 pub fn extract_includes(
     path: &PathBuf,
-    _include_dirs: &Vec<PathBuf>,
+    include_dirs: &Vec<PathBuf>,
 ) -> Result<Vec<PathBuf>, Error> {
     let f = File::open(path).map_err(|source| Error::IOError {
         source,
@@ -147,6 +143,9 @@ pub fn extract_includes(
 
     let inc_re = Regex::new(r##"^\s*#include\s*(["<])([^">]*)[">]"##).unwrap();
 
+    let mut result = Vec::new();
+    let parent_dir = PathBuf::from(path.parent().unwrap());
+
     for line in reader.lines() {
         let line = line.map_err(|source| Error::IOError {
             source,
@@ -156,14 +155,24 @@ pub fn extract_includes(
 
         if let Some(captures) = inc_re.captures(&line) {
             let inc_type = captures.get(1).unwrap().as_str();
-            info!(
-                "include: {} as {}",
-                captures.get(2).unwrap().as_str(),
-                inc_type
-            );
+            let relative_path = PathBuf::from(captures.get(2).unwrap().as_str());
+
+            if inc_type == "\"" {
+                if let Some(p) = try_resolve(&parent_dir, &relative_path) {
+                    result.push(p);
+                    continue;
+                }
+            }
+
+            if let Some(p) = include_dirs
+                .iter()
+                .filter_map(|i| try_resolve(i, &relative_path))
+                .next()
+            {
+                result.push(p);
+            }
         }
     }
 
-    // TODO
-    Ok(vec![])
+    Ok(result)
 }
