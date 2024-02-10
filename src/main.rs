@@ -28,7 +28,7 @@ fn main() -> Result<(), CompileDatabaseParseError> {
         .init();
 
     // Access data using struct fields
-    println!("Items: {:?}", parse_compile_database(&args.compile_database)?);
+    println!("Item: {:?}", parse_compile_database(&args.compile_database)?.iter().next());
 
     Ok(())
 }
