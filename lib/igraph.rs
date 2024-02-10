@@ -1,10 +1,10 @@
 use std::{
-    fs::File, io::{BufRead, BufReader, Read as _}, iter, path::PathBuf
+    fs::File, io::{BufRead, BufReader, Read as _}, path::PathBuf
 };
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use tracing::{info, instrument, trace};
+use tracing::{instrument, trace};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CompileCommandsEntry {
