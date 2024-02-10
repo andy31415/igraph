@@ -4,8 +4,7 @@ use tracing_subscriber::{
     filter::LevelFilter, layer::SubscriberExt, util::SubscriberInitExt, Layer,
 };
 
-use igraph::{self, CompileDatabaseParseError, parse_compile_database};
-
+use igraph::{self, parse_compile_database};
 
 /// Generates graphs of C++ includes
 #[derive(Parser, Debug)]
@@ -19,7 +18,7 @@ struct Args {
     log_level: Option<LevelFilter>,
 }
 
-fn main() -> Result<(), CompileDatabaseParseError> {
+fn main() -> Result<(), igraph::Error> {
     let args = Args::parse();
 
     let stdout_log = tracing_subscriber::fmt::layer().compact();
@@ -28,7 +27,13 @@ fn main() -> Result<(), CompileDatabaseParseError> {
         .init();
 
     // Access data using struct fields
-    println!("Item: {:?}", parse_compile_database(&args.compile_database)?.iter().next());
+    println!(
+        "Item: {:#?}",
+        parse_compile_database(&args.compile_database)?
+            .iter()
+            .take(5)
+            .collect::<Vec<_>>()
+    );
 
     Ok(())
 }
