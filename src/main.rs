@@ -2,7 +2,7 @@ use clap::Parser;
 
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
-use igraph::{self, parse_compile_database};
+use igraph::{self, extract_includes, parse_compile_database};
 
 /// Generates graphs of C++ includes
 #[derive(Parser, Debug)]
@@ -24,13 +24,14 @@ fn main() -> Result<(), igraph::Error> {
     .unwrap();
 
     // Access data using struct fields
-    println!(
-        "Item: {:#?}",
-        parse_compile_database(&args.compile_database)?
+    for p in parse_compile_database(&args.compile_database)?
             .iter()
-            .take(5)
-            .collect::<Vec<_>>()
-    );
+            .take(5) {
+        println!( "Item: {:#?}", p);
+        
+        extract_includes(&p.file_path, &p.include_directories);
+    }
+
 
     Ok(())
 }
