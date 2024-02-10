@@ -3,10 +3,16 @@ name = "igraph"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "igraph"
+path = "lib/igraph.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 clap = { version = "4.5.0", features = ["derive", "env"] }
 serde = { version = "1.0.196", features = ["derive", "alloc"] }
+serde_json = { version = "1.0.113", features = ["alloc"] }
+thiserror = "1.0.56"
 tracing = { version = "0.1.40", features = ["log", "async-await"] }
 tracing-subscriber = { version = "0.3.18", features = ["json", "matchers", "time", "tracing"] }
