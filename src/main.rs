@@ -4,7 +4,7 @@ use tracing_subscriber::{
     filter::LevelFilter, layer::SubscriberExt, util::SubscriberInitExt, Layer,
 };
 
-use igraph::{self, CompileDatabaseParseError, ParseCompileDatabase};
+use igraph::{self, CompileDatabaseParseError, parse_compile_database};
 
 
 /// Generates graphs of C++ includes
@@ -28,7 +28,7 @@ fn main() -> Result<(), CompileDatabaseParseError> {
         .init();
 
     // Access data using struct fields
-    println!("Items: {:?}", ParseCompileDatabase(&args.compile_database)?);
+    println!("Items: {:?}", parse_compile_database(&args.compile_database)?);
 
     Ok(())
 }

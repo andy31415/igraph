@@ -32,7 +32,7 @@ pub enum CompileDatabaseParseError {
     JsonParseError(serde_json::Error),
 }
 
-pub fn ParseCompileDatabase(
+pub fn parse_compile_database(
     path: &str,
 ) -> Result<Vec<CompileCommandsEntry>, CompileDatabaseParseError> {
     let mut file =
@@ -42,5 +42,5 @@ pub fn ParseCompileDatabase(
     file.read_to_string(&mut json_string)
         .map_err(CompileDatabaseParseError::ReadFileError)?;
 
-    Ok(serde_json::from_str(&json_string).map_err(CompileDatabaseParseError::JsonParseError)?)
+    serde_json::from_str(&json_string).map_err(CompileDatabaseParseError::JsonParseError)
 }
