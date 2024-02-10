@@ -1,8 +1,6 @@
 use clap::Parser;
 
-use tracing_subscriber::{
-    filter::LevelFilter, layer::SubscriberExt, util::SubscriberInitExt, Layer,
-};
+use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 use igraph::{self, parse_compile_database};
 
@@ -13,18 +11,17 @@ struct Args {
     /// Name of the person to greet
     #[arg(short, long)]
     compile_database: String,
-
-    #[arg(short, long)]
-    log_level: Option<LevelFilter>,
 }
 
 fn main() -> Result<(), igraph::Error> {
     let args = Args::parse();
 
-    let stdout_log = tracing_subscriber::fmt::layer().compact();
-    tracing_subscriber::registry()
-        .with(stdout_log.with_filter(args.log_level.unwrap_or(LevelFilter::WARN)))
-        .init();
+    tracing::subscriber::set_global_default(
+        FmtSubscriber::builder()
+            .with_env_filter(EnvFilter::from_default_env())
+            .finish(),
+    )
+    .unwrap();
 
     // Access data using struct fields
     println!(

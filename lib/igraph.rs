@@ -86,7 +86,7 @@ impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
     }
 }
 
-pub fn parse_includes(path: PathBuf, top_dir: PathBuf, include_dirs: Vec<PathBuf>) -> Vec<PathBuf> {
+pub fn parse_includes(_path: PathBuf, _top_dir: PathBuf, _include_dirs: Vec<PathBuf>) -> Vec<PathBuf> {
     todo!()
 }
 

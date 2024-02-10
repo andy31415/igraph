@@ -17,4 +17,4 @@ shlex = "1.3.0"
 thiserror = "1.0.56"
 trace = "0.1.7"
 tracing = { version = "0.1.40", features = ["log", "async-await"] }
-tracing-subscriber = { version = "0.3.18", features = ["json", "matchers", "time", "tracing"] }
+tracing-subscriber = { version = "0.3.18", features = ["json", "matchers", "time", "tracing", "env-filter"] }
