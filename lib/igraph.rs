@@ -44,9 +44,9 @@ pub enum Error {
 impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
     type Error = Error;
 
-    #[instrument]
+    #[instrument(skip(value))]
     fn try_from(value: CompileCommandsEntry) -> Result<Self, Self::Error> {
-        trace!("Converting CompileCommandsEntry to SourceFileEntry");
+        trace!("Generating SourceFileEntry {:#?}", value);
 
         let start_dir = PathBuf::from(value.directory);
 
@@ -86,7 +86,10 @@ impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
     }
 }
 
-#[instrument]
+pub fn parse_includes(path: PathBuf, top_dir: PathBuf, include_dirs: Vec<PathBuf>) -> Vec<PathBuf> {
+    todo!()
+}
+
 pub fn parse_compile_database(path: &str) -> Result<Vec<SourceFileEntry>, Error> {
     let mut file = File::open(path).map_err(|source| Error::IOError {
         source,
