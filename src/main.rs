@@ -2,6 +2,7 @@ use clap::Parser;
 
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
+use axum::{routing::get, Router};
 use igraph::{self, extract_includes, parse_compile_database};
 
 /// Generates graphs of C++ includes
@@ -13,7 +14,8 @@ struct Args {
     compile_database: String,
 }
 
-fn main() -> Result<(), igraph::Error> {
+#[tokio::main]
+async fn main() -> Result<(), igraph::Error> {
     let args = Args::parse();
 
     tracing::subscriber::set_global_default(
@@ -34,5 +36,20 @@ fn main() -> Result<(), igraph::Error> {
         println!("   Includes: {:#?}", includes);
     }
 
+    // build our application with a route
+    let app = Router::new()
+        // `GET /` goes to `root`
+        .route("/", get(root));
+
+    // run our app with hyper, listening globally on port 3000
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+
+    axum::serve(listener, app).await.unwrap();
+
     Ok(())
+}
+
+// basic handler that responds with a static string
+async fn root() -> &'static str {
+    "Hello, World!"
 }

@@ -10,12 +10,15 @@ path = "lib/igraph.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+axum = "0.7.4"
 clap = { version = "4.5.0", features = ["derive", "env"] }
 regex = { version = "1.10.3", features = ["use_std"] }
 serde = { version = "1.0.196", features = ["derive", "alloc"] }
 serde_json = { version = "1.0.113", features = ["alloc"] }
 shlex = "1.3.0"
 thiserror = "1.0.56"
+tokio = { version = "1.36.0", features = ["fs", "full", "net", "time", "tracing"] }
+tokio-util = { version = "0.7.10", features = ["tracing", "io", "codec", "net", "time"] }
 trace = "0.1.7"
 tracing = { version = "0.1.40", features = ["log", "async-await"] }
 tracing-subscriber = { version = "0.3.18", features = ["json", "matchers", "time", "tracing", "env-filter"] }
