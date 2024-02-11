@@ -7,11 +7,26 @@ edition = "2021"
 name = "igraph"
 path = "lib/igraph.rs"
 
+[package.metadata.leptos]
+output-name = "igraph-app"
+site-root = "target/site"
+site-addr = "127.0.0.1:3000"
+reload-port = 3001
+watch = true
+env = "DEV"
+bin-features = ["ssr"]
+lib-features = ["hydrate"]
+browserquery = "defaults"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 axum = "0.7.4"
 clap = { version = "4.5.0", features = ["derive", "env"] }
+leptos = { version = "0.6.5", features = ["tracing", "ssr", "hydrate", "template_macro"] }
+leptos_axum = { version = "0.6.5"}
+leptos_meta = { version = "0.6.5"}
+leptos_router = { version = "0.6.5"}
 regex = { version = "1.10.3", features = ["use_std"] }
 serde = { version = "1.0.196", features = ["derive", "alloc"] }
 serde_json = { version = "1.0.113", features = ["alloc"] }
