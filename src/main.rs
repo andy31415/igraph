@@ -1,14 +1,8 @@
+#[cfg(feature = "ssr")]
 use clap::Parser;
 
-use leptos::{component, view, IntoView};
-use tracing_subscriber::{EnvFilter, FmtSubscriber};
-
-use axum::Router;
-use igraph::{self, extract_includes, parse_compile_database};
-use leptos::get_configuration;
-use leptos_axum::{generate_route_list, LeptosRoutes};
-
 /// Generates graphs of C++ includes
+#[cfg(feature = "ssr")]
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -17,25 +11,15 @@ struct Args {
     compile_database: String,
 }
 
-#[component]
-fn App() -> impl IntoView {
-    view! {
-        <main>
-            <HelloComponent name="Andrei".to_string() />
-        </main>
-    }
-}
-
-#[component]
-fn HelloComponent(name: String) -> impl IntoView {
-    view! {
-        <p>Hello {name}</p>
-    }
-}
-
+#[cfg(feature = "ssr")]
 #[tokio::main]
-async fn main() -> Result<(), igraph::Error> {
-    let args = Args::parse();
+async fn main() {
+    use axum::Router;
+    use igraph::app::*;
+    use igraph::fileserv::file_and_error_handler;
+    use leptos::*;
+    use leptos_axum::{generate_route_list, LeptosRoutes};
+    use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
     tracing::subscriber::set_global_default(
         FmtSubscriber::builder()
@@ -43,8 +27,7 @@ async fn main() -> Result<(), igraph::Error> {
             .finish(),
     )
     .unwrap();
-
-    // Access data using struct fields
+    /*
     for p in parse_compile_database(&args.compile_database)?
         .iter()
         .take(5)
@@ -54,7 +37,13 @@ async fn main() -> Result<(), igraph::Error> {
         let includes = extract_includes(&p.file_path, &p.include_directories).unwrap();
         println!("   Includes: {:#?}", includes);
     }
+    */
 
+    // Setting get_configuration(None) means we'll be using cargo-leptos's env values
+    // For deployment these variables are:
+    // <https://github.com/leptos-rs/start-axum#executing-a-server-on-a-remote-machine-without-the-toolchain>
+    // Alternately a file can be specified such as Some("Cargo.toml")
+    // The file would need to be included with the executable when moved to deployment
     let conf = get_configuration(None).await.unwrap();
     let leptos_options = conf.leptos_options;
     let addr = leptos_options.site_addr;
@@ -63,11 +52,19 @@ async fn main() -> Result<(), igraph::Error> {
     // build our application with a route
     let app = Router::new()
         .leptos_routes(&leptos_options, routes, App)
+        .fallback(file_and_error_handler)
         .with_state(leptos_options);
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    println!("Listen on http://{}", &addr);
-    axum::serve(listener, app).await.unwrap();
+    logging::log!("listening on http://{}", &addr);
+    axum::serve(listener, app.into_make_service())
+        .await
+        .unwrap();
+}
 
-    Ok(())
+#[cfg(not(feature = "ssr"))]
+pub fn main() {
+    // no client-side main function
+    // unless we want this to work with e.g., Trunk for a purely client-side app
+    // see lib.rs for hydration function instead
 }
