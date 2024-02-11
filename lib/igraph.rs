@@ -1,5 +1,7 @@
 use std::{
-    fs::File, io::{BufRead, BufReader, Read as _}, path::PathBuf
+    fs::File,
+    io::{BufRead, BufReader, Read as _},
+    path::{Path, PathBuf},
 };
 
 use regex::Regex;
@@ -32,11 +34,11 @@ pub struct SourceFileEntry {
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("I/O error at path {}: {}", path, message)]
+    #[error("I/O error at path {}: {}", path.to_string_lossy(), message)]
     IOError {
         #[source]
         source: std::io::Error,
-        path: String,
+        path: PathBuf,
         message: &'static str,
     },
 
@@ -62,7 +64,7 @@ impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
 
         let file_path = file_path.canonicalize().map_err(|source| Error::IOError {
             source,
-            path: file_path.to_string_lossy().into(),
+            path: file_path.clone(),
             message: "canonicalize",
         })?;
 
@@ -92,7 +94,7 @@ impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
 
 /// Attempt to make the full path of head::tail
 /// returns None if that fails (e.g. path does not exist)
-fn try_resolve(head: &PathBuf, tail: &PathBuf) -> Option<PathBuf> {
+fn try_resolve(head: &Path, tail: &PathBuf) -> Option<PathBuf> {
     head.join(tail).canonicalize().ok()
 }
 
@@ -129,13 +131,10 @@ pub fn parse_compile_database(path: &str) -> Result<Vec<SourceFileEntry>, Error>
         .collect())
 }
 
-pub fn extract_includes(
-    path: &PathBuf,
-    include_dirs: &Vec<PathBuf>,
-) -> Result<Vec<PathBuf>, Error> {
+pub fn extract_includes(path: &PathBuf, include_dirs: &[PathBuf]) -> Result<Vec<PathBuf>, Error> {
     let f = File::open(path).map_err(|source| Error::IOError {
         source,
-        path: path.to_string_lossy().into(),
+        path: path.clone(),
         message: "open",
     })?;
 
@@ -149,7 +148,7 @@ pub fn extract_includes(
     for line in reader.lines() {
         let line = line.map_err(|source| Error::IOError {
             source,
-            path: path.to_string_lossy().into(),
+            path: path.clone(),
             message: "line read",
         })?;
 
