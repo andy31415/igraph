@@ -81,11 +81,9 @@ fn HomePage() -> impl IntoView {
     let on_click = move |_| set_count.update(|count| *count += 1);
 
     let (items, set_items) = create_signal(TestData::default());
-    
-    let items_action = create_action(|_| {
-        get_items()
-    });
-    
+
+    let items_action = create_action(|_| get_items());
+
     create_effect(move |_| {
         if let Some(v) = items_action.input().get() {
             println!(".... INPUT seems to have value {}", v);
@@ -107,10 +105,8 @@ fn HomePage() -> impl IntoView {
         }
     });
 
-    let on_get_items = move |_| {
-        items_action.dispatch("DISPATCH INPUT")
-    };
-    
+    let on_get_items = move |_| items_action.dispatch("DISPATCH INPUT");
+
     view! {
         <h1>"Welcome to Leptos!"</h1>
         <button on:click=on_click>"Click Me: " {count}</button>
