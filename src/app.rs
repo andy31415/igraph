@@ -76,12 +76,7 @@ pub fn App() -> impl IntoView {
 /// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
-    // Creates a reactive value to update the button
-    let (count, set_count) = create_signal(0);
-    let on_click = move |_| set_count.update(|count| *count += 1);
-
     let (items, set_items) = create_signal(TestData::default());
-
     let items_action = create_action(|_| get_items());
 
     create_effect(move |_| {
@@ -109,8 +104,7 @@ fn HomePage() -> impl IntoView {
 
     view! {
         <h1>"Welcome to Leptos!"</h1>
-        <button on:click=on_click>"Click Me: " {count}</button>
-        <button on:click=on_get_items>"Refresh items"</button>
+        <button on:click=on_get_items>"Load compile database"</button>
 
         <p>
             <h3>Items</h3>
