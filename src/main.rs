@@ -1,17 +1,4 @@
 #[cfg(feature = "ssr")]
-use clap::Parser;
-
-/// Generates graphs of C++ includes
-#[cfg(feature = "ssr")]
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-struct Args {
-    /// Name of the person to greet
-    #[arg(short, long)]
-    compile_database: String,
-}
-
-#[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
     use axum::Router;
@@ -27,17 +14,6 @@ async fn main() {
             .finish(),
     )
     .unwrap();
-    /*
-    for p in parse_compile_database(&args.compile_database)?
-        .iter()
-        .take(5)
-    {
-        println!("Item: {:#?}", p);
-
-        let includes = extract_includes(&p.file_path, &p.include_directories).unwrap();
-        println!("   Includes: {:#?}", includes);
-    }
-    */
 
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
     // For deployment these variables are:

@@ -36,7 +36,13 @@ tracing-subscriber = { version = "0.3.18", features = [
 
 
 [features]
-hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
+hydrate = [
+    "leptos/hydrate", 
+    "leptos_meta/hydrate", 
+    "leptos_router/hydrate",
+    "dep:serde",
+    "dep:serde_json",
+]
 ssr = [
     "dep:axum",
     "dep:clap",

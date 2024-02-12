@@ -26,12 +26,13 @@ pub struct CompileCommandsEntry {
     pub output: Option<String>,
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Hash)]
+#[derive(Debug, PartialEq, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct SourceFileEntry {
     pub file_path: PathBuf,
     pub include_directories: Vec<PathBuf>,
 }
 
+#[cfg(feature = "ssr")]
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("I/O error at path {}: {}", path.to_string_lossy(), message)]
@@ -46,6 +47,7 @@ pub enum Error {
     JsonParseError(serde_json::Error),
 }
 
+#[cfg(feature = "ssr")]
 impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
     type Error = Error;
 
@@ -92,12 +94,14 @@ impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
     }
 }
 
+#[cfg(feature = "ssr")]
 /// Attempt to make the full path of head::tail
 /// returns None if that fails (e.g. path does not exist)
 fn try_resolve(head: &Path, tail: &PathBuf) -> Option<PathBuf> {
     head.join(tail).canonicalize().ok()
 }
 
+#[cfg(feature = "ssr")]
 pub fn parse_compile_database(path: &str) -> Result<Vec<SourceFileEntry>, Error> {
     let mut file = File::open(path).map_err(|source| Error::IOError {
         source,
@@ -131,6 +135,7 @@ pub fn parse_compile_database(path: &str) -> Result<Vec<SourceFileEntry>, Error>
         .collect())
 }
 
+#[cfg(feature = "ssr")]
 pub fn extract_includes(path: &PathBuf, include_dirs: &[PathBuf]) -> Result<Vec<PathBuf>, Error> {
     let f = File::open(path).map_err(|source| Error::IOError {
         source,
