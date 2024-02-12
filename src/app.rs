@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::error_template::{AppError, ErrorTemplate};
 use leptos::*;
 use leptos_meta::*;
@@ -7,12 +9,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct TestData {
     pub items: Vec<String>,
-}
-
-impl IntoView for TestData {
-    fn into_view(self) -> View {
-        todo!()
-    }
 }
 
 #[server(GetItems, "/api")]
@@ -31,6 +27,8 @@ pub async fn get_items() -> Result<TestData, ServerFnError> {
         println!("   Includes: {:#?}", includes);
     }
     */
+    
+    tokio::time::sleep(Duration::from_secs(2)).await;
 
     Ok(TestData {
         items: v
@@ -101,10 +99,15 @@ fn HomePage() -> impl IntoView {
     });
 
     let on_get_items = move |_| items_action.dispatch("DISPATCH INPUT");
+    
+    let my_items = create_resource(|| (), |value| async move {
+        get_items().await
+    });
 
     view! {
         <h1>"Welcome to Leptos!"</h1>
         <button on:click=on_get_items>"Load compile database"</button>
+        <button on:click={move |_|{my_items.refetch()}}>"Load2"</button>
 
         <p>
             <h3>Items</h3>
@@ -115,6 +118,25 @@ fn HomePage() -> impl IntoView {
                    children=move|item| { view!{<li>{item}</li>}}
                />
             </ul>
+            <h3>"Items style 2"</h3>
+            <Suspense
+                fallback=move || view!{<p>"Suspense loading..."</p>}
+            >
+               {move || match my_items.get() {
+                  None => view!{<div>"Loading..."</div>}.into_view(),
+                  Some(Ok(data)) => view!{
+                   <ul class="file-paths">
+                   <For
+                       each = move|| {data.items.clone()}
+                       key=|item| item.clone()
+                       children=move|item| { view!{<li>{item}</li>}}
+                   />
+                  </ul>
+                  }.into_view(),
+                  _ => view!{<p>"ERROR???..."</p>}.into_view(),
+                }
+               }
+            </Suspense>
         </p>
     }
 }
