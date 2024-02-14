@@ -60,51 +60,16 @@ pub fn App() -> impl IntoView {
 /// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
-    let (items, set_items) = create_signal(TestData::default());
-    let items_action = create_action(|_| get_items());
-
-    create_effect(move |_| {
-        if let Some(v) = items_action.input().get() {
-            println!(".... INPUT seems to have value {}", v);
-        } else {
-            println!(".... INPUT DOES NOT HAVE A VALUE");
-        }
-    });
-
-    create_effect(move |_| {
-        if let Some(v) = items_action.value().get() {
-            println!(".... RESULT seems to have value {:#?}", v);
-            if let Ok(td) = v {
-                set_items.update(|i| {
-                    *i = td;
-                });
-            }
-        } else {
-            println!(".... RESULT DOES NOT HAVE A VALUE");
-        }
-    });
-
-    let on_get_items = move |_| items_action.dispatch("DISPATCH INPUT");
-
-    let my_items = create_resource(|| (), |_| async move { get_items().await });
+    let items = create_resource(|| (), |_| async move { get_items().await });
 
     view! {
         <h1>"Welcome to Leptos!"</h1>
-        <button on:click=on_get_items>"Load compile database"</button>
-        <button on:click={move |_|{my_items.refetch()}}>"Load2"</button>
+        <button on:click={move |_|{items.refetch()}}>"(Re)load items"</button>
 
         <p>
             <h3>Items</h3>
-            <ul class="file-paths">
-               <For
-                   each = move|| {items.get().items}
-                   key=|item| item.clone()
-                   children=move|item| { view!{<li>{item}</li>}}
-               />
-            </ul>
-            <h3>"Items style 2"</h3>
             <Suspense fallback=move || view!{<p>"Suspense loading..."</p>} >
-               {move || match my_items.get() {
+               {move || match items.get() {
                   Some(Ok(data)) => view!{
                    <ul class="file-paths">
                    <For
