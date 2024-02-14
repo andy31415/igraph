@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use crate::error_template::{AppError, ErrorTemplate};
 use leptos::*;
 use leptos_meta::*;
@@ -17,18 +15,6 @@ pub async fn get_items() -> Result<TestData, ServerFnError> {
         "/home/andrei/devel/connectedhomeip/out/linux-x64-all-clusters-clang/compile_commands.json";
 
     let v = crate::igraph::parse_compile_database(compile_database).unwrap();
-
-    /*
-    for p in v.iter().take(5) {
-        println!("Item: {:#?}", p);
-
-        let includes =
-            crate::igraph::extract_includes(&p.file_path, &p.include_directories).unwrap();
-        println!("   Includes: {:#?}", includes);
-    }
-    */
-    
-    tokio::time::sleep(Duration::from_secs(2)).await;
 
     Ok(TestData {
         items: v
@@ -99,10 +85,8 @@ fn HomePage() -> impl IntoView {
     });
 
     let on_get_items = move |_| items_action.dispatch("DISPATCH INPUT");
-    
-    let my_items = create_resource(|| (), |value| async move {
-        get_items().await
-    });
+
+    let my_items = create_resource(|| (), |_| async move { get_items().await });
 
     view! {
         <h1>"Welcome to Leptos!"</h1>
@@ -119,11 +103,8 @@ fn HomePage() -> impl IntoView {
                />
             </ul>
             <h3>"Items style 2"</h3>
-            <Suspense
-                fallback=move || view!{<p>"Suspense loading..."</p>}
-            >
+            <Suspense fallback=move || view!{<p>"Suspense loading..."</p>} >
                {move || match my_items.get() {
-                  None => view!{<div>"Loading..."</div>}.into_view(),
                   Some(Ok(data)) => view!{
                    <ul class="file-paths">
                    <For
