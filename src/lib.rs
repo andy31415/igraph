@@ -1,11 +1,19 @@
+use cfg_if::cfg_if;
+
 pub mod app;
+pub mod dependency_graph;
 pub mod error_template;
-#[cfg(feature = "ssr")]
+
+cfg_if::cfg_if! {
+if #[cfg(feature = "ssr")] {
 pub mod fileserv;
+pub mod igraph;
+}
+}
+
+pub mod path_mapper;
 
 #[cfg(feature = "ssr")]
-pub mod igraph;
-
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn hydrate() {

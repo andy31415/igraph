@@ -137,6 +137,8 @@ pub fn parse_compile_database(path: &str) -> Result<Vec<SourceFileEntry>, Error>
 
 #[cfg(feature = "ssr")]
 pub fn extract_includes(path: &PathBuf, include_dirs: &[PathBuf]) -> Result<Vec<PathBuf>, Error> {
+    use tracing::debug;
+
     let f = File::open(path).map_err(|source| Error::IOError {
         source,
         path: path.clone(),
@@ -160,6 +162,8 @@ pub fn extract_includes(path: &PathBuf, include_dirs: &[PathBuf]) -> Result<Vec<
         if let Some(captures) = inc_re.captures(&line) {
             let inc_type = captures.get(1).unwrap().as_str();
             let relative_path = PathBuf::from(captures.get(2).unwrap().as_str());
+            
+            debug!("Possible include: {:?}", relative_path);
 
             if inc_type == "\"" {
                 if let Some(p) = try_resolve(&parent_dir, &relative_path) {
@@ -174,6 +178,8 @@ pub fn extract_includes(path: &PathBuf, include_dirs: &[PathBuf]) -> Result<Vec<
                 .next()
             {
                 result.push(p);
+            } else {
+                debug!("NOT resolved via {:?}", include_dirs);
             }
         }
     }
