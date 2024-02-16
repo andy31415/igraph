@@ -24,7 +24,7 @@ pub enum Node {
 /// Represents dependency management
 pub trait DependencyGraph {
     /// mark a dependency from src to dest
-    fn AddDependency(&mut self, src: String, dest: String);
+    fn add_dependency(&mut self, src: String, dest: String);
 }
 
 #[derive(Default, Debug)]
@@ -44,7 +44,7 @@ impl DependencyGroups {
 }
 
 impl DependencyGraph for DependencyGroups {
-    fn AddDependency(&mut self, src: String, dest: String) {
+    fn add_dependency(&mut self, src: String, dest: String) {
         if let Some(existing) = self.dependencies.get_mut(&src) {
             existing.insert(dest);
         } else {

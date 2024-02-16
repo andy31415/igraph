@@ -2,8 +2,8 @@
 #[tokio::main]
 async fn main() {
     use axum::Router;
+    use igraph::app::*;
     use igraph::fileserv::file_and_error_handler;
-    use igraph::{app::* };
     use leptos::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
     use tracing_subscriber::{EnvFilter, FmtSubscriber};

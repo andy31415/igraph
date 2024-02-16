@@ -162,7 +162,7 @@ pub fn extract_includes(path: &PathBuf, include_dirs: &[PathBuf]) -> Result<Vec<
         if let Some(captures) = inc_re.captures(&line) {
             let inc_type = captures.get(1).unwrap().as_str();
             let relative_path = PathBuf::from(captures.get(2).unwrap().as_str());
-            
+
             debug!("Possible include: {:?}", relative_path);
 
             if inc_type == "\"" {
