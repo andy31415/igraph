@@ -1,13 +1,13 @@
 use std::path::{Path, PathBuf};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PathMapping {
     pub from: PathBuf,
     pub to: String,
 }
 
 /// Maps path buffers into actual strings
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct PathMapper {
     mappings: Vec<PathMapping>,
 }

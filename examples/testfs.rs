@@ -3,8 +3,15 @@ use igraph::{
     path_mapper::{PathMapper, PathMapping},
 };
 use std::{collections::HashSet, path::PathBuf};
+use tokio::sync::mpsc;
 use tracing::{error, info, info_span, trace, warn};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
+
+#[derive(Debug, PartialEq, Clone)]
+struct IncludeInfo {
+    file: String,
+    mapped_includes: Vec<String>,
+}
 
 #[tokio::main]
 async fn main() {
@@ -56,26 +63,45 @@ async fn main() {
     info!("Processing with {} includes", includes.len());
     trace!("Processing with includes {:#?}", includes);
 
-    let span = info_span!("processing");
-    let mut cnt = 0;
+    let (tx, mut rx) = mpsc::channel(10);
+
     for entry in
         glob::glob("/home/andrei/devel/connectedhomeip/src/app/**/*").expect("Valid pattern")
     {
-        let _enter = span.enter();
-        match entry {
-            Ok(s) if is_header(&s) || is_source(&s) => {
-                cnt += 1;
-                trace!("PROCESS: {:?}", mapper.try_map(&s));
-                for v in extract_includes(&s, &includes).unwrap() {
-                    if let Some(p) = mapper.try_map(&v) {
-                        trace!("    => {:?}", p);
-                    } else {
-                        trace!("    => ???: {:?}", v);
+        let spawn_tx = tx.clone();
+        let spawn_mapper = mapper.clone();
+        let spawn_includes = includes.clone();
+        tokio::spawn(async move {
+            match entry {
+                Ok(s) if is_header(&s) || is_source(&s) => {
+                    let mut r = IncludeInfo {
+                        file: s.to_string_lossy().into(),
+                        mapped_includes: vec![],
+                    };
+
+                    trace!("PROCESS: {:?}", spawn_mapper.try_map(&s));
+
+                    for v in extract_includes(&s, &spawn_includes).unwrap() {
+                        if let Some(p) = spawn_mapper.try_map(&v) {
+                            trace!("    => {:?}", p);
+                            r.mapped_includes.push(p);
+                        } else {
+                            trace!("    => ???: {:?}", v);
+                        }
+                    }
+                    if let Err(e) = spawn_tx.send(r).await {
+                        error!("Error sending: {:?}", e);
                     }
                 }
-            }
-            _ => {}
-        }
+                Ok(_) => {},
+                Err(e) => error!("GLOB error: {:?}", e),
+            };
+        });
     }
-    info!("Done processing {} files", cnt);
+    drop(tx);
+    
+    while let Some(r) = rx.recv().await {
+        trace!("GOT: {:?}", r);
+    }
+    info!("Done");
 }
