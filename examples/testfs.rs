@@ -109,8 +109,10 @@ async fn main() {
     }
     drop(tx);
 
+    let mut cnt = 0;
     while let Some(r) = rx.recv().await {
         trace!("GOT: {:?}", r);
+        cnt += 1;
     }
-    info!("Done");
+    info!("Done {} files", cnt);
 }
