@@ -34,7 +34,7 @@ async fn main() {
         from: PathBuf::from("/home/andrei/devel/connectedhomeip/src/app"),
         to: "app::".into(),
     });
-    
+
     let mapper = Arc::new(mapper);
 
     let is_header = |p: &std::path::Path| {
