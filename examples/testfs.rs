@@ -2,7 +2,7 @@ use igraph::{
     igraph::{extract_includes, parse_compile_database},
     path_mapper::{PathMapper, PathMapping},
 };
-use std::{collections::HashSet, path::PathBuf};
+use std::{collections::HashSet, path::PathBuf, sync::Arc};
 use tokio::sync::mpsc;
 use tracing::{error, info, trace};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
@@ -34,6 +34,8 @@ async fn main() {
         from: PathBuf::from("/home/andrei/devel/connectedhomeip/src/app"),
         to: "app::".into(),
     });
+    
+    let mapper = Arc::new(mapper);
 
     let is_header = |p: &std::path::Path| {
         let e = p.extension().and_then(|e| e.to_str()).unwrap_or("");
@@ -64,7 +66,7 @@ async fn main() {
         Err(e) => error!("ERROR: {:#?}", e),
     }
 
-    let includes = includes.into_iter().collect::<Vec<_>>();
+    let includes = Arc::new(includes.into_iter().collect::<Vec<_>>());
 
     info!("Processing with {} includes", includes.len());
     trace!("Processing with includes {:#?}", includes);
@@ -75,8 +77,8 @@ async fn main() {
         glob::glob("/home/andrei/devel/connectedhomeip/src/app/**/*").expect("Valid pattern")
     {
         let spawn_tx = tx.clone();
-        let spawn_mapper = mapper.clone();
-        let spawn_includes = includes.clone();
+        let mapper = mapper.clone();
+        let includes = includes.clone();
         tokio::spawn(async move {
             match entry {
                 Ok(s) if is_header(&s) || is_source(&s) => {
@@ -84,14 +86,14 @@ async fn main() {
                     let r = IncludeInfo {
                         file: Mapping {
                             path: s.to_string_lossy().into(),
-                            mapped: spawn_mapper.try_map(&s),
+                            mapped: mapper.try_map(&s),
                         },
-                        includes: extract_includes(&s, &spawn_includes)
+                        includes: extract_includes(&s, &includes)
                             .unwrap()
                             .into_iter()
                             .map(|v| Mapping {
                                 path: v.to_string_lossy().into(),
-                                mapped: spawn_mapper.try_map(&v),
+                                mapped: mapper.try_map(&v),
                             })
                             .collect(),
                     };
