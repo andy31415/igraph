@@ -6,7 +6,7 @@ use std::{
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use tracing::{instrument, trace};
+use tracing::{debug, instrument, trace};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CompileCommandsEntry {
