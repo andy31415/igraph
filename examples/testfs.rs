@@ -8,9 +8,15 @@ use tracing::{error, info, trace};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 #[derive(Debug, PartialEq, Clone)]
+struct Mapping {
+    path: String,
+    mapped: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 struct IncludeInfo {
-    file: String,
-    mapped_includes: Vec<String>,
+    file: Mapping,
+    includes: Vec<Mapping>,
 }
 
 #[tokio::main]
@@ -74,21 +80,22 @@ async fn main() {
         tokio::spawn(async move {
             match entry {
                 Ok(s) if is_header(&s) || is_source(&s) => {
-                    let mut r = IncludeInfo {
-                        file: s.to_string_lossy().into(),
-                        mapped_includes: vec![],
+                    trace!("PROCESS: {:?}", s);
+                    let r = IncludeInfo {
+                        file: Mapping {
+                            path: s.to_string_lossy().into(),
+                            mapped: spawn_mapper.try_map(&s),
+                        },
+                        includes: extract_includes(&s, &spawn_includes)
+                            .unwrap()
+                            .into_iter()
+                            .map(|v| Mapping {
+                                path: v.to_string_lossy().into(),
+                                mapped: spawn_mapper.try_map(&v),
+                            })
+                            .collect(),
                     };
 
-                    trace!("PROCESS: {:?}", spawn_mapper.try_map(&s));
-
-                    for v in extract_includes(&s, &spawn_includes).unwrap() {
-                        if let Some(p) = spawn_mapper.try_map(&v) {
-                            trace!("    => {:?}", p);
-                            r.mapped_includes.push(p);
-                        } else {
-                            trace!("    => ???: {:?}", v);
-                        }
-                    }
                     if let Err(e) = spawn_tx.send(r).await {
                         error!("Error sending: {:?}", e);
                     }
