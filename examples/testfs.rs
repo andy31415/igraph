@@ -4,7 +4,7 @@ use igraph::{
 };
 use std::{collections::HashSet, path::PathBuf};
 use tokio::sync::mpsc;
-use tracing::{error, info, info_span, trace, warn};
+use tracing::{error, info, trace};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 #[derive(Debug, PartialEq, Clone)]
@@ -93,13 +93,13 @@ async fn main() {
                         error!("Error sending: {:?}", e);
                     }
                 }
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(e) => error!("GLOB error: {:?}", e),
             };
         });
     }
     drop(tx);
-    
+
     while let Some(r) = rx.recv().await {
         trace!("GOT: {:?}", r);
     }
