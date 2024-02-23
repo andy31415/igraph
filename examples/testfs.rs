@@ -1,5 +1,5 @@
 use igraph::{
-    igraph::{extract_includes, parse_compile_database},
+    igraph::{compiledb::parse_compile_database, extract_includes},
     path_mapper::{PathMapper, PathMapping},
 };
 use std::{collections::HashSet, path::PathBuf, sync::Arc};
@@ -52,7 +52,7 @@ async fn main() {
         "/home/andrei/devel/connectedhomeip/out/linux-x64-all-clusters-clang/compile_commands.json";
 
     info!("Loading compile db...");
-    let r = parse_compile_database(COMPILE_DB_PATH);
+    let r = parse_compile_database(COMPILE_DB_PATH).await;
 
     info!("Done ...");
     match r {
@@ -89,6 +89,7 @@ async fn main() {
                             mapped: mapper.try_map(&s),
                         },
                         includes: extract_includes(&s, &includes)
+                            .await
                             .unwrap()
                             .into_iter()
                             .map(|v| Mapping {
