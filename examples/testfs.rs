@@ -1,5 +1,6 @@
-use igraph::{
-    igraph::{compiledb::parse_compile_database, cparse::extract_includes},
+use igraph::igraph::{
+    compiledb::parse_compile_database,
+    cparse::extract_includes,
     path_mapper::{PathMapper, PathMapping},
 };
 use std::{collections::HashSet, path::PathBuf, sync::Arc};

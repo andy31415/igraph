@@ -6,3 +6,5 @@ pub mod compiledb;
 
 #[cfg(feature = "ssr")]
 pub mod cparse;
+
+pub mod path_mapper;

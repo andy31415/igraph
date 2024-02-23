@@ -9,8 +9,6 @@ pub mod igraph;
 }
 }
 
-pub mod path_mapper;
-
 #[cfg(feature = "ssr")]
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]
