@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use tokio::{fs::File, io::AsyncReadExt as _};
-use tracing::{instrument, trace};
+use tracing::{instrument};
 
 use std::path::PathBuf;
 
@@ -36,7 +36,7 @@ impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
 
     #[instrument(skip(value))]
     fn try_from(value: CompileCommandsEntry) -> Result<Self, Self::Error> {
-        trace!("Generating SourceFileEntry {:#?}", value);
+        // trace!("Generating SourceFileEntry {:#?}", value);
 
         let start_dir = PathBuf::from(value.directory);
 

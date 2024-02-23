@@ -14,8 +14,9 @@ input {
     include_dir ${GEN_ROOT}
 
     # Only API will be loaded anyway
-    glob ${CHIP_ROOT}/src/app/**
-    glob ${GEN_ROOT}/**
+    glob bad_glob_here
+    glob ${CHIP_ROOT}/src/app/**/*
+    glob ${GEN_ROOT}/**/*
 }
 
 # Options for dependency graphs

@@ -13,6 +13,7 @@ use nom::{
     sequence::{pair, separated_pair, tuple},
     IResult, Parser,
 };
+use nom_supreme::ParserExt;
 
 use std::{
     collections::{HashMap, HashSet},
@@ -22,9 +23,10 @@ use std::{
 use tracing::{error, info, trace};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct DependencyData {
-    includes: Vec<PathBuf>,
+    includes: HashSet<PathBuf>,
+    files: Vec<SourceWithIncludes>,
 }
 
 fn expand_variable(value: &str, existing: &HashMap<String, String>) -> String {
@@ -64,20 +66,40 @@ fn parse_variable_name(input: &str) -> IResult<&str, &str> {
     is_not("= \t\r\n{}[]()#").parse(input)
 }
 
+fn parse_until_whitespace(input: &str) -> IResult<&str, &str> {
+    is_not("#\n\r \t").parse(input)
+}
+
+#[derive(Debug)]
 enum InputCommand {
     IncludesFromCompileDb(String),
     IncludeDirectory(String),
-    Glob(String)
+    Glob(String),
 }
 
-fn parse_input(input: &str) -> IResult<&str, InputCommand> {
-    tuple((
-        tuple((tag("input")), parse_whitespace, tag("{"), opt(parse_whitespace)),
-        separated_list0(parse_whitespace, parse_input_command),
-        tuple((parse_whitespace, tag("}"), opt(parse_whitespace)),
-    )).map(|_, l, _| l).parse(input)
-    // Next input follows:
-    //
+fn parse_input_command(input: &str) -> IResult<&str, InputCommand> {
+    alt((
+        parse_until_whitespace
+            .preceded_by(tuple((
+                tag("includes"),
+                parse_whitespace,
+                tag("from"),
+                parse_whitespace,
+                tag("compiledb"),
+                parse_whitespace,
+            )))
+            .map(|s| InputCommand::IncludesFromCompileDb(s.into())),
+        parse_until_whitespace
+            .preceded_by(tuple((tag("glob"), parse_whitespace)))
+            .map(|s| InputCommand::Glob(s.into())),
+        parse_until_whitespace
+            .preceded_by(tuple((tag("include_dir"), parse_whitespace)))
+            .map(|s| InputCommand::IncludeDirectory(s.into())),
+    ))
+    .parse(input)
+}
+
+fn parse_input(input: &str) -> IResult<&str, Vec<InputCommand>> {
     // input {
     //   includes from compiledb ${COMPILE_ROOT}/compile_commands.json
     //   include_dir ${GEN_ROOT}
@@ -86,19 +108,30 @@ fn parse_input(input: &str) -> IResult<&str, InputCommand> {
     //   glob ${CHIP_ROOT}/src/app/**
     //   glob ${GEN_ROOT}/**
     // }
+    tuple((
+        tuple((
+            tag("input"),
+            parse_whitespace,
+            tag("{"),
+            opt(parse_whitespace),
+        )),
+        separated_list0(parse_whitespace, parse_input_command),
+        tuple((parse_whitespace, tag("}"), opt(parse_whitespace))),
+    ))
+    .map(|(_, l, _)| l)
+    .parse(input)
 }
 
-
-fn parse_data(input: &str) -> IResult<&str, ()> {
+async fn parse_data(input: &str) -> IResult<&str, ()> {
     let input = match parse_whitespace(input) {
         Ok((data, _)) => data,
         _ => input,
     };
 
     // First, parse all variables
-    let (_input, input_vars) = separated_list0(
+    let (input, input_vars) = separated_list0(
         parse_whitespace,
-        separated_pair(parse_variable_name, tag("="), is_not("#\n\r \t")),
+        separated_pair(parse_variable_name, tag("="), parse_until_whitespace),
     )
     .parse(input)?;
 
@@ -108,12 +141,62 @@ fn parse_data(input: &str) -> IResult<&str, ()> {
     }
 
     trace!("Resolved variables: {:#?}", variables);
+    trace!("Parsing instructions...");
 
-    let instructions = tuple((opt(parse_whitespace), parse_input, opt(parse_whitespace)))
+    let (input, instructions) = tuple((opt(parse_whitespace), parse_input, opt(parse_whitespace)))
         .map(|(_, i, _)| i)
         .parse(input)?;
 
-    Ok(("", ()))
+    trace!("Instructions: {:#?}", instructions);
+
+    let mut dependency_data = DependencyData::default();
+
+    for i in instructions {
+        match i {
+            InputCommand::IncludesFromCompileDb(cdb) => {
+                match parse_compile_database(&expand_variable(&cdb, &variables)).await {
+                    Ok(entries) => {
+                        for entry in entries {
+                            dependency_data.includes.extend(entry.include_directories);
+                        }
+                    }
+                    Err(err) => {
+                        error!("Error parsing compile database {}: {:?}", cdb, err);
+                    }
+                }
+            }
+            InputCommand::IncludeDirectory(path) => {
+                dependency_data
+                    .includes
+                    .insert(PathBuf::from(expand_variable(&path, &variables)));
+            }
+            InputCommand::Glob(g) => {
+                let glob = match glob::glob(&expand_variable(&g, &variables)) {
+                    Ok(value) => value,
+                    Err(e) => {
+                        error!("Glob error for {}: {:?}", g, e);
+                        continue;
+                    }
+                };
+                let includes_array = dependency_data
+                    .includes
+                    .clone()
+                    .into_iter()
+                    .collect::<Vec<_>>();
+                match all_sources_and_includes(glob, &includes_array).await {
+                    Ok(data) => dependency_data.files.extend(data),
+                    Err(e) => {
+                        error!("Include prodcessing for {} failed: {:?}", g, e);
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+
+    trace!("Dependency data: {:#?}", dependency_data);
+
+    Ok((input, ()))
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -159,7 +242,9 @@ async fn main() {
     )
     .unwrap();
 
-    let _ = parse_data(include_str!("../sample_api.txt"));
+    if let Err(e) = parse_data(include_str!("../sample_api.txt")).await {
+        error!("PARSE ERROR: {:#?}", e);
+    }
 
     let mut mapper = PathMapper::default();
 
