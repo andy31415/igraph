@@ -9,7 +9,6 @@ use std::{
 use tokio::{
     fs::File,
     io::{AsyncBufReadExt as _, BufReader},
-    sync::mpsc,
 };
 use tracing::{debug, error, trace};
 
@@ -113,18 +112,25 @@ pub struct SourceWithIncludes {
 }
 
 /// Given a list of paths, figure out their dependencies
-pub async fn all_sources_and_includes<I, E>(paths: I, includes: &[PathBuf]) -> Result<Vec<SourceWithIncludes>, E>
+pub async fn all_sources_and_includes<I, E>(
+    paths: I,
+    includes: &[PathBuf],
+) -> Result<Vec<SourceWithIncludes>, Error>
 where
     I: Iterator<Item = Result<PathBuf, E>>,
     E: Debug,
 {
-    let (tx, mut rx) = mpsc::channel(256);
-
     let includes = Arc::new(Vec::from(includes));
+    let mut handles = Vec::new();
+
     for entry in paths {
         let path = match entry {
             Ok(value) => value,
-            Err(e) => return Err(e),
+            Err(e) => {
+                return Err(Error::Internal {
+                    message: format!("{:?}", e),
+                })
+            }
         };
 
         if FileType::of(&path) == FileType::Unknown {
@@ -134,31 +140,26 @@ where
 
         // prepare data to mve into sub-task
         let includes = includes.clone();
-        let spawn_tx = tx.clone();
 
-        tokio::spawn(async move {
+        handles.push(tokio::spawn(async move {
             trace!("PROCESS: {:?}", path);
             let includes = match extract_includes(&path, &includes).await {
                 Ok(value) => value,
                 Err(e) => {
                     error!("Error extracing includes: {:?}", e);
-                    return;
+                    return Err(e);
                 }
             };
 
-            let r = SourceWithIncludes { path, includes };
-
-            if let Err(e) = spawn_tx.send(r).await {
-                error!("Error sending: {:?}", e);
-            }
-        });
-    }
-    drop(tx);
-
-    let mut result = Vec::new();
-    while let Some(r) = rx.recv().await {
-        result.push(r)
+            Ok(SourceWithIncludes { path, includes })
+        }));
     }
 
-    Ok(result)
+    let mut results = Vec::new();
+    for h in handles {
+        let r = h.await.map_err(Error::JoinError)?;
+        results.push(r?)
+    }
+
+    Ok(results)
 }
