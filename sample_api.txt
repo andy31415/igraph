@@ -1,0 +1,55 @@
+# Typical comments
+
+# Variable declarations
+CHIP_ROOT=/home/andrei/devel/connectedhomeip
+COMPILE_ROOT=${CHIP_ROOT}/out/linux-x64-all-clusters-clang
+GEN_ROOT=${COMPILE_ROOT}/gen/third_party/connectedhomeip/examples/all-clusters-app/all-clusters-common/zapgen/
+
+# Sources define what sources to load
+# Headers are generally found, however cpp files need to be loaded
+# 
+# globbing inputs will use any previously defined includes
+input {
+    includes from compiledb ${COMPILE_ROOT}/compile_commands.json
+    include_dir ${GEN_ROOT}
+
+    # Only API will be loaded anyway
+    glob ${CHIP_ROOT}/src/app/**
+    glob ${GEN_ROOT}/**
+}
+
+# Options for dependency graphs
+# By default NOTHING is kept and NOTHING is grouped
+graph {
+   name_map {
+     ${CHIP_ROOT}/src/app => app::
+     ${GEN_ROOT} => zapgen::
+   }
+
+   keep_map app::
+   keep_map zapgen::
+   
+   group {
+      # Load all the specified targets for grouping
+      # Group logic:
+      #   - they must be in order of application
+      #   - first group wins (a file belongs to one group only)
+      gn root ${COMPILE_ROOT} target //src/app/* sources ${CHIP_ROOT}
+      
+      # manually defined group
+      manual test_group {
+        # support mapped names by default
+        app::SomeFileName.h
+        app::OtherName.cpp
+      }
+
+      # groups together h and cpp files
+      # IFF they do not already belong to some other group
+      group_source_header
+   }
+
+   zoom {
+     test_group
+     //src/app
+   }
+}

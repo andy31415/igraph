@@ -4,13 +4,88 @@ use igraph::igraph::{
     gn::load_gn_targets,
     path_mapper::{PathMapper, PathMapping},
 };
+use nom::{
+    branch::alt,
+    bytes::complete::{is_not, tag},
+    character::complete::{char as parsed_char, multispace1},
+    combinator::value,
+    multi::{many1, separated_list0},
+    sequence::{pair, separated_pair},
+    IResult, Parser,
+};
+
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     path::{Path, PathBuf},
 };
 
 use tracing::{error, info, trace};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
+
+#[derive(Debug)]
+struct DependencyData {
+    includes: Vec<PathBuf>,
+}
+
+fn expand_variable(value: &str, existing: &HashMap<String, String>) -> String {
+    // expand any occurences of "${name}"
+    let mut value = value.to_string();
+
+    loop {
+        let replacements = existing
+            .iter()
+            .map(|(k, v)| (format!("${{{}}}", k), v))
+            .filter(|(k, _v)| value.contains(k))
+            .collect::<Vec<_>>();
+
+        if replacements.is_empty() {
+            break;
+        }
+
+        for (k, v) in replacements {
+            value = value.replace(&k, v);
+        }
+    }
+
+    value
+}
+
+fn parse_comment(input: &str) -> IResult<&str, &str> {
+    pair(parsed_char('#'), is_not("\n\r"))
+        .map(|(_, r)| r)
+        .parse(input)
+}
+
+fn parse_whitespace(input: &str) -> IResult<&str, ()> {
+    value((), many1(alt((multispace1, parse_comment)))).parse(input)
+}
+
+fn parse_variable_name(input: &str) -> IResult<&str, &str> {
+    is_not("= \t\r\n{}[]()#").parse(input)
+}
+
+fn parse_data(input: &str) -> IResult<&str, ()> {
+    let input = match parse_whitespace(input) {
+        Ok((data, _)) => data,
+        _ => input,
+    };
+
+    // First, parse all variables
+    let (_input, input_vars) = separated_list0(
+        parse_whitespace,
+        separated_pair(parse_variable_name, tag("="), is_not("#\n\r \t")),
+    )
+    .parse(input)?;
+
+    let mut variables = HashMap::new();
+    for (name, value) in input_vars {
+        variables.insert(name.to_string(), expand_variable(value, &variables));
+    }
+
+    trace!("Resolved variables: {:#?}", variables);
+
+    Ok(("", ()))
+}
 
 #[derive(Debug, PartialEq, Clone)]
 struct Mapping {
@@ -54,6 +129,8 @@ async fn main() {
             .finish(),
     )
     .unwrap();
+
+    let _ = parse_data(include_str!("../sample_api.txt"));
 
     let mut mapper = PathMapper::default();
 
