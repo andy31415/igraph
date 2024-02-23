@@ -9,6 +9,7 @@ use std::{
 use tokio::{
     fs::File,
     io::{AsyncBufReadExt as _, BufReader},
+    task::JoinSet,
 };
 use tracing::{debug, error, trace};
 
@@ -121,7 +122,8 @@ where
     E: Debug,
 {
     let includes = Arc::new(Vec::from(includes));
-    let mut handles = Vec::new();
+
+    let mut join_set = JoinSet::new();
 
     for entry in paths {
         let path = match entry {
@@ -141,7 +143,7 @@ where
         // prepare data to mve into sub-task
         let includes = includes.clone();
 
-        handles.push(tokio::spawn(async move {
+        join_set.spawn(async move {
             trace!("PROCESS: {:?}", path);
             let includes = match extract_includes(&path, &includes).await {
                 Ok(value) => value,
@@ -152,12 +154,12 @@ where
             };
 
             Ok(SourceWithIncludes { path, includes })
-        }));
+        });
     }
 
     let mut results = Vec::new();
-    for h in handles {
-        let r = h.await.map_err(Error::JoinError)?;
+    while let Some(h) = join_set.join_next().await {
+        let r = h.map_err(Error::JoinError)?;
         results.push(r?)
     }
 
