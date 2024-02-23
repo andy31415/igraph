@@ -8,7 +8,7 @@ use error::Error;
 
 use std::path::{Path, PathBuf};
 
-use tracing::debug;
+use tracing::{debug};
 
 #[cfg(feature = "ssr")]
 /// Attempt to make the full path of head::tail
@@ -76,7 +76,10 @@ pub async fn extract_includes(
             {
                 result.push(p);
             } else {
-                debug!("NOT resolved via {:?}", include_dirs);
+                // Debug only as this is VERY common due to C++ and system inclues,
+                // like "list", "vector", "string" or even platform specific like "jni.h"
+                // or non-enabled things (like openthread on a non-thread platform)
+                debug!("Include {:?} could not be resolved", relative_path);
             }
         }
     }
