@@ -1,15 +1,18 @@
-use std::{collections::HashMap, path::Path};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use serde::Deserialize;
 use tokio::process::Command;
-use tracing::warn;
+use tracing::{error, warn};
 
 use super::error::Error;
 
 #[derive(Debug, PartialEq)]
 pub struct GnTarget {
     pub name: String,
-    pub sources: Vec<String>,
+    pub sources: Vec<PathBuf>,
 }
 
 #[derive(Deserialize)]
@@ -73,6 +76,22 @@ pub async fn load_gn_targets(
     Ok(decoded
         .inner
         .into_iter()
-        .filter_map(|(name, sources)| sources.sources.map(|sources| GnTarget { name, sources }))
+        .filter_map(|(name, sources)| {
+            sources.sources.map(|sources| GnTarget {
+                name,
+                sources: sources
+                    .into_iter()
+                    .map(|s| {
+                        let mut path = PathBuf::from(source_root);
+                        // NOTE: we RELY that paths start with '//'
+                        if !s.starts_with("//") {
+                            error!("PATH: {:?} DOES NOT start with '//' as expected", s);
+                        }
+                        path.push(PathBuf::from(&s.as_str()[2..]));
+                        path
+                    })
+                    .collect(),
+            })
+        })
         .collect())
 }
