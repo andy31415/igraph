@@ -1,10 +1,13 @@
 use igraph::igraph::{
     compiledb::parse_compile_database,
-    cparse::{extract_includes, FileType},
+    cparse::{all_sources_and_includes, SourceWithIncludes},
     path_mapper::{PathMapper, PathMapping},
 };
-use std::{collections::HashSet, path::PathBuf, sync::Arc};
-use tokio::sync::mpsc;
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
+
 use tracing::{error, info, trace};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
@@ -14,10 +17,32 @@ struct Mapping {
     mapped: Option<String>,
 }
 
+impl Mapping {
+    pub fn of(path: &Path, mapper: &PathMapper) -> Self {
+        Self {
+            path: path.to_string_lossy().into(),
+            mapped: mapper.try_map(path),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 struct IncludeInfo {
     file: Mapping,
     includes: Vec<Mapping>,
+}
+
+impl IncludeInfo {
+    pub fn of(data: &SourceWithIncludes, mapping: &PathMapper) -> Self {
+        Self {
+            file: Mapping::of(&data.path, mapping),
+            includes: data
+                .includes
+                .iter()
+                .map(|p| Mapping::of(p, mapping))
+                .collect(),
+        }
+    }
 }
 
 #[tokio::main]
@@ -35,8 +60,6 @@ async fn main() {
         from: PathBuf::from("/home/andrei/devel/connectedhomeip/src/app"),
         to: "app::".into(),
     });
-
-    let mapper = Arc::new(mapper);
 
     let mut includes = HashSet::new();
 
@@ -58,54 +81,28 @@ async fn main() {
         Err(e) => error!("ERROR: {:#?}", e),
     }
 
-    let includes = Arc::new(includes.into_iter().collect::<Vec<_>>());
+    let includes = includes.into_iter().collect::<Vec<_>>();
 
     info!("Processing with {} includes", includes.len());
     trace!("Processing with includes {:#?}", includes);
 
-    let (tx, mut rx) = mpsc::channel(10);
+    let data = all_sources_and_includes(
+        glob::glob("/home/andrei/devel/connectedhomeip/src/app/**/*").expect("Valid pattern"),
+        &includes,
+    )
+    .await;
 
-    for entry in
-        glob::glob("/home/andrei/devel/connectedhomeip/src/app/**/*").expect("Valid pattern")
-    {
-        let spawn_tx = tx.clone();
-        let mapper = mapper.clone();
-        let includes = includes.clone();
-        tokio::spawn(async move {
-            match entry {
-                Ok(s) if FileType::of(&s) != FileType::Unknown => {
-                    trace!("PROCESS: {:?}", s);
-                    let r = IncludeInfo {
-                        file: Mapping {
-                            path: s.to_string_lossy().into(),
-                            mapped: mapper.try_map(&s),
-                        },
-                        includes: extract_includes(&s, &includes)
-                            .await
-                            .unwrap()
-                            .into_iter()
-                            .map(|v| Mapping {
-                                path: v.to_string_lossy().into(),
-                                mapped: mapper.try_map(&v),
-                            })
-                            .collect(),
-                    };
+    let data = match data {
+        Ok(value) => value,
+        Err(e) => {
+            error!("ERROR: {:#?}", e);
+            return;
+        }
+    };
 
-                    if let Err(e) = spawn_tx.send(r).await {
-                        error!("Error sending: {:?}", e);
-                    }
-                }
-                Ok(_) => {}
-                Err(e) => error!("GLOB error: {:?}", e),
-            };
-        });
-    }
-    drop(tx);
-
-    let mut cnt = 0;
-    while let Some(r) = rx.recv().await {
+    for r in data.iter().map(|v| IncludeInfo::of(v, &mapper)) {
         trace!("GOT: {:?}", r);
-        cnt += 1;
     }
-    info!("Done {} files", cnt);
+
+    info!("Done {} files", data.len());
 }

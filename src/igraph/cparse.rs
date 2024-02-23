@@ -108,11 +108,11 @@ pub async fn extract_includes(
 
 #[derive(Debug, PartialEq, PartialOrd)]
 pub struct SourceWithIncludes {
-    path: PathBuf,
-    includes: Vec<PathBuf>,
+    pub path: PathBuf,
+    pub includes: Vec<PathBuf>,
 }
 
-pub async fn all_sources<I, E>(paths: I, includes: &[PathBuf]) -> Result<Vec<SourceWithIncludes>, E>
+pub async fn all_sources_and_includes<I, E>(paths: I, includes: &[PathBuf]) -> Result<Vec<SourceWithIncludes>, E>
 where
     I: Iterator<Item = Result<PathBuf, E>>,
     E: Debug,
