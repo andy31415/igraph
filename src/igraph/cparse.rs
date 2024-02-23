@@ -112,12 +112,13 @@ pub struct SourceWithIncludes {
     pub includes: Vec<PathBuf>,
 }
 
+/// Given a list of paths, figure out their dependencies
 pub async fn all_sources_and_includes<I, E>(paths: I, includes: &[PathBuf]) -> Result<Vec<SourceWithIncludes>, E>
 where
     I: Iterator<Item = Result<PathBuf, E>>,
     E: Debug,
 {
-    let (tx, mut rx) = mpsc::channel(64);
+    let (tx, mut rx) = mpsc::channel(256);
 
     let includes = Arc::new(Vec::from(includes));
     for entry in paths {
