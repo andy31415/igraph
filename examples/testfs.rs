@@ -1,6 +1,6 @@
 use igraph::igraph::{
     compiledb::parse_compile_database,
-    cparse::extract_includes,
+    cparse::{extract_includes, FileType},
     path_mapper::{PathMapper, PathMapping},
 };
 use std::{collections::HashSet, path::PathBuf, sync::Arc};
@@ -38,15 +38,6 @@ async fn main() {
 
     let mapper = Arc::new(mapper);
 
-    let is_header = |p: &std::path::Path| {
-        let e = p.extension().and_then(|e| e.to_str()).unwrap_or("");
-        e == "h" || e == "hpp"
-    };
-    let is_source = |p: &std::path::Path| {
-        let e = p.extension().and_then(|e| e.to_str()).unwrap_or("");
-        e == "cpp" || e == "cc" || e == "c" || e == "cxx"
-    };
-
     let mut includes = HashSet::new();
 
     const COMPILE_DB_PATH: &str =
@@ -82,7 +73,7 @@ async fn main() {
         let includes = includes.clone();
         tokio::spawn(async move {
             match entry {
-                Ok(s) if is_header(&s) || is_source(&s) => {
+                Ok(s) if FileType::of(&s) != FileType::Unknown => {
                     trace!("PROCESS: {:?}", s);
                     let r = IncludeInfo {
                         file: Mapping {

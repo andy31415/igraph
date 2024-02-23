@@ -14,6 +14,28 @@ fn try_resolve(head: &Path, tail: &PathBuf) -> Option<PathBuf> {
     head.join(tail).canonicalize().ok()
 }
 
+#[derive(PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
+pub enum FileType {
+    Header,
+    Source,
+    Unknown,
+}
+
+impl FileType {
+    pub fn of(path: &Path) -> Self {
+        let ext = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+        match ext.as_str() {
+            "h" | "hpp" => FileType::Header,
+            "c" | "cpp" | "cc" | "cxx" => FileType::Source,
+            _ => FileType::Unknown,
+        }
+    }
+}
+
 /// Given a C-like source, try to resolve includes.
 ///
 /// Includes are generally of the form `#include <name>` or `#include "name"`
