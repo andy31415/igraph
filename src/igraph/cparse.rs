@@ -1,12 +1,17 @@
 use super::error::Error;
 
 use regex::Regex;
-use std::path::{Path, PathBuf};
+use std::{
+    fmt::Debug,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 use tokio::{
     fs::File,
     io::{AsyncBufReadExt as _, BufReader},
+    sync::mpsc,
 };
-use tracing::debug;
+use tracing::{debug, error, trace};
 
 /// Attempt to make the full path of head::tail
 /// returns None if that fails (e.g. path does not exist)
@@ -96,6 +101,62 @@ pub async fn extract_includes(
                 debug!("Include {:?} could not be resolved", relative_path);
             }
         }
+    }
+
+    Ok(result)
+}
+
+#[derive(Debug, PartialEq, PartialOrd)]
+pub struct SourceWithIncludes {
+    path: PathBuf,
+    includes: Vec<PathBuf>,
+}
+
+pub async fn all_sources<I, E>(paths: I, includes: &[PathBuf]) -> Result<Vec<SourceWithIncludes>, E>
+where
+    I: Iterator<Item = Result<PathBuf, E>>,
+    E: Debug,
+{
+    let (tx, mut rx) = mpsc::channel(64);
+
+    let includes = Arc::new(Vec::from(includes));
+    for entry in paths {
+        let path = match entry {
+            Ok(value) => value,
+            Err(e) => return Err(e),
+        };
+
+        if FileType::of(&path) == FileType::Unknown {
+            trace!("Skipping non-source: {:?}", path);
+            continue;
+        }
+
+        // prepare data to mve into sub-task
+        let includes = includes.clone();
+        let spawn_tx = tx.clone();
+
+        tokio::spawn(async move {
+            trace!("PROCESS: {:?}", path);
+            let includes = match extract_includes(&path, &includes).await {
+                Ok(value) => value,
+                Err(e) => {
+                    error!("Error extracing includes: {:?}", e);
+                    return;
+                }
+            };
+
+            let r = SourceWithIncludes { path, includes };
+
+            if let Err(e) = spawn_tx.send(r).await {
+                error!("Error sending: {:?}", e);
+            }
+        });
+    }
+    drop(tx);
+
+    let mut result = Vec::new();
+    while let Some(r) = rx.recv().await {
+        result.push(r)
     }
 
     Ok(result)
