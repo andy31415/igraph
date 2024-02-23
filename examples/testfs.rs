@@ -8,9 +8,9 @@ use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
     character::complete::{char as parsed_char, multispace1},
-    combinator::value,
+    combinator::{opt, value},
     multi::{many1, separated_list0},
-    sequence::{pair, separated_pair},
+    sequence::{pair, separated_pair, tuple},
     IResult, Parser,
 };
 
@@ -64,6 +64,31 @@ fn parse_variable_name(input: &str) -> IResult<&str, &str> {
     is_not("= \t\r\n{}[]()#").parse(input)
 }
 
+enum InputCommand {
+    IncludesFromCompileDb(String),
+    IncludeDirectory(String),
+    Glob(String)
+}
+
+fn parse_input(input: &str) -> IResult<&str, InputCommand> {
+    tuple((
+        tuple((tag("input")), parse_whitespace, tag("{"), opt(parse_whitespace)),
+        separated_list0(parse_whitespace, parse_input_command),
+        tuple((parse_whitespace, tag("}"), opt(parse_whitespace)),
+    )).map(|_, l, _| l).parse(input)
+    // Next input follows:
+    //
+    // input {
+    //   includes from compiledb ${COMPILE_ROOT}/compile_commands.json
+    //   include_dir ${GEN_ROOT}
+
+    //   # Only API will be loaded anyway
+    //   glob ${CHIP_ROOT}/src/app/**
+    //   glob ${GEN_ROOT}/**
+    // }
+}
+
+
 fn parse_data(input: &str) -> IResult<&str, ()> {
     let input = match parse_whitespace(input) {
         Ok((data, _)) => data,
@@ -83,6 +108,10 @@ fn parse_data(input: &str) -> IResult<&str, ()> {
     }
 
     trace!("Resolved variables: {:#?}", variables);
+
+    let instructions = tuple((opt(parse_whitespace), parse_input, opt(parse_whitespace)))
+        .map(|(_, i, _)| i)
+        .parse(input)?;
 
     Ok(("", ()))
 }
