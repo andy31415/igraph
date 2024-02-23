@@ -1,6 +1,7 @@
 use igraph::igraph::{
     compiledb::parse_compile_database,
     cparse::{all_sources_and_includes, SourceWithIncludes},
+    gn::load_gn_targets,
     path_mapper::{PathMapper, PathMapping},
 };
 use std::{
@@ -105,4 +106,24 @@ async fn main() {
     }
 
     info!("Done {} files", data.len());
+
+    info!("Loading GN targets");
+    // validate gn
+    match load_gn_targets(
+        &PathBuf::from("/home/andrei/devel/connectedhomeip/out/linux-x64-all-clusters-clang"),
+        &PathBuf::from("/home/andrei/devel/connectedhomeip"),
+        "//src/app/*",
+    )
+    .await
+    {
+        Ok(items) => {
+            for target in items.iter() {
+                trace!("  {:#?}", target);
+            }
+            info!("Found {} gn targets", items.len());
+        }
+        Err(e) => {
+            error!("GN LOAD ERROR: {:?}", e);
+        }
+    }
 }
