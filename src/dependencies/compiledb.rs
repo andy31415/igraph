@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use tokio::{fs::File, io::AsyncReadExt as _};
-use tracing::instrument;
 
 use std::path::PathBuf;
 
@@ -30,11 +29,9 @@ pub struct CompileCommandsEntry {
     pub output: Option<String>,
 }
 
-#[cfg(feature = "ssr")]
 impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
     type Error = Error;
 
-    #[instrument(skip(value))]
     fn try_from(value: CompileCommandsEntry) -> Result<Self, Self::Error> {
         // trace!("Generating SourceFileEntry {:#?}", value);
 
