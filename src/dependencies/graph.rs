@@ -289,7 +289,7 @@ impl GraphBuilder {
         };
         let group_id = format!("grp_{}", uuid::Uuid::now_v6(&[1, 0, 0, 0, 0, 0]))
             .to_string()
-            .replace("-", "_");
+            .replace('-', "_");
 
         for path in items {
             let path = path.as_ref();
@@ -320,7 +320,7 @@ impl GraphBuilder {
                 uuid::Uuid::now_v6(&[0, 0, 0, 0, 0, g.nodes.len() as u8])
             )
             .to_string()
-            .replace("-", "_");
+            .replace('-', "_");
             g.nodes.insert(MappedNode {
                 id: node_id.clone(),
                 path: PathBuf::from(path),
