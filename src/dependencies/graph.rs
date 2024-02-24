@@ -166,13 +166,16 @@ impl GraphBuilder {
             None => {
                 error!("Group {:?} was NOT found", group);
                 return;
-            },
+            }
         };
 
         match self.graph.groups.get_mut(id) {
             Some(value) => value.zoomed = true,
             None => {
-                error!("Internal error group {:?} with id {:?} was NOT found", group, id);
+                error!(
+                    "Internal error group {:?} with id {:?} was NOT found",
+                    group, id
+                );
                 return;
             }
         }
