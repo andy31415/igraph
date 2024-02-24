@@ -34,6 +34,9 @@ pub struct Group {
     /// are the nodes expanded out
     pub zoomed: bool,
 
+    // some color name to use
+    pub color: String,
+
     /// what are the nodes
     pub nodes: HashSet<MappedNode>,
 }
@@ -42,6 +45,19 @@ pub struct Group {
 pub struct LinkNode {
     pub group_id: String,
     pub node_id: Option<String>,
+}
+
+impl LinkNode {
+    pub fn without_node(&self) -> LinkNode {
+        if self.node_id.is_none() {
+            self.clone()
+        } else {
+            LinkNode {
+                group_id: self.group_id.clone(),
+                node_id: None,
+            }
+        }
+    }
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Serialize)]
@@ -170,7 +186,7 @@ impl GraphBuilder {
                 let (prefix, _) = name.split_at(idx);
                 name = String::from(prefix);
             }
-            self.define_group(&name, group);
+            self.define_group(&name, "aqua", group);
         }
     }
 
@@ -192,7 +208,7 @@ impl GraphBuilder {
                 };
 
                 // have to create a stand-alone group
-                self.define_group(&mapped_name, [path]);
+                self.define_group(&mapped_name, "thistle", [path]);
                 self.placement_maps.get(path).expect("just created a group")
             }
         };
@@ -224,6 +240,21 @@ impl GraphBuilder {
             }
         };
 
+        let from = if to.node_id.is_none() {
+            from.without_node()
+        } else {
+            from
+        };
+        let to = if from.node_id.is_none() {
+            to.without_node()
+        } else {
+            to
+        };
+
+        if from == to {
+            return;
+        }
+
         self.graph.links.insert(GraphLink { from, to });
     }
 
@@ -235,12 +266,12 @@ impl GraphBuilder {
                 .filter(|p| self.known_path(p))
                 .collect::<Vec<_>>();
             if !items.is_empty() {
-                self.define_group(&target.name, items);
+                self.define_group(&target.name, "lightgreen", items);
             }
         }
     }
 
-    pub fn define_group<T, P>(&mut self, group_name: &str, items: T)
+    pub fn define_group<T, P>(&mut self, group_name: &str, color: &str, items: T)
     where
         T: IntoIterator<Item = P>,
         P: AsRef<Path>,
@@ -253,9 +284,12 @@ impl GraphBuilder {
         let mut g = Group {
             name: group_name.into(),
             zoomed: false,
+            color: color.into(),
             nodes: HashSet::default(),
         };
-        let group_id = uuid::Uuid::now_v6(&[1, 0, 0, 0, 0, 0]).to_string();
+        let group_id = format!("grp_{}", uuid::Uuid::now_v6(&[1, 0, 0, 0, 0, 0]))
+            .to_string()
+            .replace("-", "_");
 
         for path in items {
             let path = path.as_ref();
@@ -281,7 +315,12 @@ impl GraphBuilder {
                 }
             };
 
-            let node_id = uuid::Uuid::now_v6(&[0, 0, 0, 0, 0, g.nodes.len() as u8]).to_string();
+            let node_id = format!(
+                "node_{}",
+                uuid::Uuid::now_v6(&[0, 0, 0, 0, 0, g.nodes.len() as u8])
+            )
+            .to_string()
+            .replace("-", "_");
             g.nodes.insert(MappedNode {
                 id: node_id.clone(),
                 path: PathBuf::from(path),

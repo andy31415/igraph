@@ -54,7 +54,7 @@ graph {
    }
 
    zoom {
-     //src/app:app
+     # //src/app:app
    }
 
 }

@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match args.output {
         Some(path) => {
-            graph.write_dot(File::open(path).await?).await?;
+            graph.write_dot(File::create(path).await?).await?;
         }
         None => {
             graph.write_dot(io::stdout()).await?;

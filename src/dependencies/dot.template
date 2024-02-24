@@ -1,11 +1,17 @@
-digraph "include-graph {
-  graph [rankdir=LR]
+digraph include_graph {
+  rankdir=LR;
+  compound=true;
 
 {% for id, group in groups %}
-  "{{id}}" [label="{{group.name}}"];
+  {{id}} [
+    label="{{group.name}}"
+    shape=rectangle 
+    style=filled
+    fillcolor="{{group.color}}"
+  ]
 {% endfor %}
 
 {% for link in links %}
-   "{{ link.from | link_target }}" -> "{{link.to | link_target }}"
+   {{ link.from | link_target }} -> {{link.to | link_target }}
 {% endfor %}
 }

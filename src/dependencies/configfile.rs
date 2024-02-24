@@ -498,6 +498,7 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
                 // the actual name...
                 g.define_group(
                     &name,
+                    "orange",
                     items.into_iter().filter_map(|n| mapper.try_invert(&n)),
                 );
             }
