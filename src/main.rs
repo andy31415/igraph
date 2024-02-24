@@ -4,6 +4,10 @@ use camino::Utf8PathBuf;
 use clap::Parser;
 use igraph::dependencies::configfile::parse_config_file;
 
+use tokio::{
+    fs::File,
+    io::{self},
+};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 /// A program generating DOT graphs for include dependencies.
@@ -31,8 +35,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     let data = tokio::fs::read_to_string(&args.config).await?;
-    let _graph = parse_config_file(&data).await?;
+    let graph = parse_config_file(&data).await?;
 
-    println!("TODO: this needs to be implemented.");
+    match args.output {
+        Some(path) => {
+            graph.write_dot(File::open(path).await?).await?;
+        }
+        None => {
+            graph.write_dot(io::stdout()).await?;
+        }
+    };
+
     Ok(())
 }

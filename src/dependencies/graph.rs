@@ -3,11 +3,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use tracing::{debug, error};
+use serde::Serialize;
+use tera::{Context, Tera, Value};
+use tokio::io::{AsyncWrite, AsyncWriteExt, BufWriter};
+use tracing::{debug, error, warn};
 
-use super::{gn::GnTarget, path_mapper::PathMapping};
+use super::{error::Error, gn::GnTarget, path_mapper::PathMapping};
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct MappedNode {
     // unique id
     pub id: String,
@@ -23,7 +26,7 @@ pub struct MappedNode {
 ///
 /// MAY also be a singular item inside, however a graph is generally
 /// a group of named items
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct Group {
     /// nice display name
     pub name: String,
@@ -35,22 +38,75 @@ pub struct Group {
     pub nodes: HashSet<MappedNode>,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Serialize)]
 pub struct LinkNode {
     pub group_id: String,
     pub node_id: Option<String>,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Serialize)]
 pub struct GraphLink {
     pub from: LinkNode,
     pub to: LinkNode,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct Graph {
-    pub groups: HashMap<String, Group>,
-    pub links: HashSet<GraphLink>,
+    groups: HashMap<String, Group>,
+    links: HashSet<GraphLink>,
+}
+
+impl Graph {
+    pub async fn write_dot<D>(&self, dest: D) -> Result<(), Error>
+    where
+        D: AsyncWrite + Unpin,
+    {
+        let mut writer = BufWriter::new(dest);
+
+        let mut tera = Tera::default();
+        tera.add_raw_template("dot_template", include_str!("dot.template"))
+            .map_err(Error::RenderError)?;
+
+        tera.register_filter(
+            "link_target",
+            |n: &Value, _: &HashMap<String, Value>| -> tera::Result<Value> {
+                let m = match n {
+                    Value::Object(o) => o,
+                    _ => return Ok(Value::Null),
+                };
+                let g = n.get("group_id").expect("Must have group id");
+                let n = n.get("node_id").expect("Must have group id");
+
+                match (g, n) {
+                    (Value::String(group), Value::String(node)) => {
+                        Ok(Value::String(format!("{}.{}", group, node)))
+                    }
+                    (Value::String(group), Value::Null) => Ok(Value::String(group.clone())),
+                    _ => Ok(Value::Null),
+                }
+            },
+        );
+
+        writer
+            .write(
+                tera.render(
+                    "dot_template",
+                    &Context::from_serialize(&self).map_err(Error::RenderError)?,
+                )
+                .map_err(Error::RenderError)?
+                .to_string()
+                .as_bytes(),
+            )
+            .await
+            .map_err(|source| Error::AsyncIOError {
+                source,
+                message: "Error writing.",
+            })?;
+        writer.flush().await.map_err(|source| Error::AsyncIOError {
+            source,
+            message: "Error flushing writer.",
+        })
+    }
 }
 
 #[derive(Debug, Default)]

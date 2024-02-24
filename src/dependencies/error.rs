@@ -11,6 +11,16 @@ pub enum Error {
         path: PathBuf,
         message: &'static str,
     },
+    
+    #[error("I/O error: {}", message)]
+    AsyncIOError {
+        #[source]
+        source: tokio::io::Error,
+        message: &'static str,
+    },
+
+    #[error("Terra render error")]
+    RenderError(tera::Error),
 
     #[error("Failed to parse JSON")]
     JsonParseError(serde_json::Error),
