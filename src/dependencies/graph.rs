@@ -89,7 +89,7 @@ impl LinkNode {
             Some(ref id) => Some(m.get(id)?.clone()),
             None => None,
         };
-        
+
         Some(Self {
             group_id: m.get(&self.group_id)?.clone(),
             node_id,

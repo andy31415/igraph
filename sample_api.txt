@@ -74,8 +74,11 @@ graph {
          app::dynamic_server/DynamicDispatcher.cpp
       }
 
-      manual read-handler {
+      manual read-handler-header {
         app::ReadHandler.h
+      }
+      manual write-handler-header {
+        app::WriteHandler.h
       }
 
 
@@ -85,10 +88,9 @@ graph {
    }
 
    zoom {
+     //src/app:app
      //src/app:interaction-model
-     read-handler
-     # //src/app:app
-     # //src/app/icd/server:sender
-     # read-handler
+     read-handler-header
+     write-handler-header
    }
 }

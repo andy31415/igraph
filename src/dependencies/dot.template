@@ -1,5 +1,5 @@
 digraph include_graph {
-  rankdir=LR;
+  rankdir=BT;
   compound=true;
   node [shape=rectangle, style=filled, fontname="monospace"]
 
