@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use tracing::{error, warn};
+use tracing::{debug, error, warn};
 
 use super::path_mapper::{PathMapper, PathMapping};
 
@@ -74,6 +74,41 @@ impl GraphBuilder {
         self.path_maps.contains_key(path)
     }
 
+    pub fn group_extensions(&mut self, extensions: &[&str]) {
+        // Get every single possible grouping
+        let groups = self
+            .path_maps
+            .keys()
+            .map(|p| p.with_extension(""))
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .map(|stem| {
+                extensions
+                    .iter()
+                    .map(|e| stem.with_extension(e))
+                    .filter(|p| self.known_path(p))
+                    .filter(|p| !self.placement_maps.contains_key(p))
+                    .collect::<Vec<_>>()
+            })
+            .filter(|e| e.len() > 1)
+            .collect::<Vec<_>>();
+
+        for group in groups {
+            let mut name = self
+                .path_maps
+                .get(group.first().expect("size at least 2"))
+                .expect("known")
+                .to
+                .clone();
+
+            if let Some(idx) = name.rfind('.') {
+                let (prefix, _) = name.split_at(idx);
+                name = String::from(prefix);
+            }
+            self.define_group(&name, group.into_iter());
+        }
+    }
+
     pub fn define_group<T>(&mut self, group_name: &str, items: T)
     where
         T: Iterator<Item = PathBuf>,
@@ -126,9 +161,20 @@ impl GraphBuilder {
     }
 
     pub fn zoom_in(&mut self, group: &str) {
-        match self.graph.groups.get_mut(group) {
+        let id = match self.group_name_to_id.get(group) {
+            Some(id) => id,
+            None => {
+                error!("Group {:?} was NOT found", group);
+                return;
+            },
+        };
+
+        match self.graph.groups.get_mut(id) {
             Some(value) => value.zoomed = true,
-            None => error!("Group {:?} was NOT found", group),
+            None => {
+                error!("Internal error group {:?} with id {:?} was NOT found", group, id);
+                return;
+            }
         }
     }
 }

@@ -457,9 +457,8 @@ pub async fn parse_config_file(input: &str) -> IResult<&str, ()> {
     // define all the groups
     for group_instruction in instructions.group_instructions {
         match group_instruction {
-            GroupInstruction::GroupSourceHeader => {
-                // TODO
-            }
+            GroupInstruction::GroupSourceHeader => g.group_extensions(&["h", "cpp", "hpp", "c", "cxx"]),
+            
             GroupInstruction::GroupFromGn {
                 gn_root,
                 target,
