@@ -37,13 +37,13 @@ graph {
       #   - first group wins (a file belongs to one group only)
       gn root ${COMPILE_ROOT} target //src/app/* sources ${CHIP_ROOT}
 
-   #    
-   #    # manually defined group
-   #    manual test_group {
-   #      # support mapped names by default
-   #      app::SomeFileName.h
-   #      app::OtherName.cpp
-   #    }
+      
+      # manually defined group
+      manual test_group {
+        # Grouping is done by mapped names
+        app::SomeFileName.h
+        app::OtherName.cpp
+      }
 
        # groups together h and cpp files
        # IFF they do not already belong to some other group

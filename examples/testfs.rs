@@ -134,12 +134,16 @@ pub enum MapInstruction {
 }
 
 #[derive(Debug, Clone)]
-enum GroupInstruction {
+pub enum GroupInstruction {
     GroupSourceHeader,
     GroupFromGn {
         gn_root: String,
         target: String,
         source_root: String,
+    },
+    ManualGroup {
+        name: String,
+        items: Vec<String>,
     },
 }
 
@@ -221,6 +225,33 @@ fn parse_map_instructions(input: &str) -> IResult<&str, Vec<MapInstruction>> {
     .parse(input)
 }
 
+fn parse_manual_group(input: &str) -> IResult<&str, GroupInstruction> {
+    tuple((
+        parse_until_whitespace
+            .preceded_by(tuple((
+                opt(parse_whitespace),
+                tag_no_case("manual"),
+                opt(parse_whitespace),
+            )))
+            .terminated(tuple((opt(parse_whitespace), tag_no_case("{")))),
+        many0(
+            is_not("\n\r \t#}")
+                .preceded_by(opt(parse_whitespace))
+                .map(String::from),
+        ),
+    ))
+    .map(|(name, items)| GroupInstruction::ManualGroup {
+        name: name.into(),
+        items,
+    })
+    .terminated(tuple((
+        opt(parse_whitespace),
+        tag_no_case("}"),
+        opt(parse_whitespace),
+    )))
+    .parse(input)
+}
+
 fn parse_group(input: &str) -> IResult<&str, Vec<GroupInstruction>> {
     many0(alt((
         value(
@@ -253,6 +284,7 @@ fn parse_group(input: &str) -> IResult<&str, Vec<GroupInstruction>> {
                 source_root: source_root.into(),
             },
         ),
+        parse_manual_group,
     )))
     .preceded_by(tuple((
         opt(parse_whitespace),
@@ -295,15 +327,6 @@ fn parse_graph<'a>(
     variables: &'_ HashMap<String, String>,
     _deps: &'_ DependencyData,
 ) -> IResult<&'a str, GraphInstructions> {
-    // TODO path:
-    //
-    // - decode into instructions
-    // - make sure paths are expanded as variables
-    // - overall:
-    //     - map-instructions (DONE, no expand YET)
-    //     - group-instructions
-    //     - zoom-list (NOT instructions)
-
     tuple((parse_map_instructions, parse_group, opt(parse_zoom)))
         .preceded_by(tuple((
             opt(parse_whitespace),
@@ -326,28 +349,6 @@ fn parse_graph<'a>(
             .mapped(variables)
         })
         .parse(input)
-
-    // graph {
-    //    map {
-    //      ${CHIP_ROOT}/src/app => app::
-    //      ${GEN_ROOT} => zapgen::
-    //
-    //      keep app::
-    //      keep zapgen::
-    //    }
-    //    group {
-    //       gn root ${COMPILE_ROOT} target //src/app/* sources ${CHIP_ROOT}
-    //       manual test_group {
-    //         app::SomeFileName.h
-    //         app::OtherName.cpp
-    //       }
-    //       group_source_header
-    //    }
-    //    zoom {
-    //      test_group
-    //      //src/app
-    //    }
-    // }
 }
 
 async fn parse_data(input: &str) -> IResult<&str, ()> {
