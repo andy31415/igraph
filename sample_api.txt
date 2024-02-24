@@ -74,11 +74,10 @@ graph {
          app::dynamic_server/DynamicDispatcher.cpp
       }
 
-      manual read-handler-header {
+      manual handler-headers {
         app::ReadHandler.h
-      }
-      manual write-handler-header {
         app::WriteHandler.h
+        app::CommandHandler.h
       }
 
 
@@ -91,7 +90,6 @@ graph {
      # focus: is supported to focus links on those
      //src/app:app
      //src/app:interaction-model
-     focus: read-handler-header
-     focus: write-handler-header
+     focus: handler-headers
    }
 }
