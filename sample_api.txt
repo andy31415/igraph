@@ -88,9 +88,10 @@ graph {
    }
 
    zoom {
+     # focus: is supported to focus links on those
      //src/app:app
      //src/app:interaction-model
-     read-handler-header
-     write-handler-header
+     focus: read-handler-header
+     focus: write-handler-header
    }
 }

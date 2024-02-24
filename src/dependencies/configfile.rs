@@ -143,10 +143,16 @@ pub enum GroupInstruction {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct ZoomItem {
+    name: String,
+    focused: bool,
+}
+
+#[derive(Debug, PartialEq)]
 struct GraphInstructions {
     map_instructions: Vec<MapInstruction>,
     group_instructions: Vec<GroupInstruction>,
-    zoom_items: Vec<String>,
+    zoom_items: Vec<ZoomItem>,
 }
 
 impl GraphInstructions {
@@ -303,11 +309,16 @@ fn parse_group(input: &str) -> IResult<&str, Vec<GroupInstruction>> {
     .parse(input)
 }
 
-fn parse_zoom(input: &str) -> IResult<&str, Vec<String>> {
+fn parse_zoom(input: &str) -> IResult<&str, Vec<ZoomItem>> {
     many0(
-        is_not("\n\r \t#}")
-            .preceded_by(opt(parse_whitespace))
-            .map(String::from),
+        tuple((
+            opt(tag_no_case("focus:").terminated(parse_whitespace)),
+            is_not("\n\r \t#}").terminated(opt(parse_whitespace)),
+        ))
+        .map(|(focus, name)| ZoomItem {
+            name: name.into(),
+            focused: focus.is_some(),
+        }),
     )
     .preceded_by(tuple((
         opt(parse_whitespace),
@@ -524,8 +535,8 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
     }
 
     // mark what is zoomed in ...
-    for name in instructions.zoom_items {
-        g.zoom_in(&name)
+    for item in instructions.zoom_items {
+        g.zoom_in(&item.name, item.focused)
     }
 
     for dep in dependency_data.files {
@@ -641,10 +652,55 @@ mod tests {
             Ok((
                 "",
                 vec![
-                    "this".to_string(),
-                    "is".to_string(),
-                    "some".to_string(),
-                    "test".to_string()
+                    ZoomItem {
+                        name: "this".to_string(),
+                        focused: false
+                    },
+                    ZoomItem {
+                        name: "is".to_string(),
+                        focused: false
+                    },
+                    ZoomItem {
+                        name: "some".to_string(),
+                        focused: false
+                    },
+                    ZoomItem {
+                        name: "test".to_string(),
+                        focused: false
+                    },
+                ]
+            ))
+        );
+
+        assert_eq!(
+            parse_zoom(
+                "
+         #comment
+         zoom{
+            normal
+            focus: thisone
+            not this
+         }"
+            ),
+            Ok((
+                "",
+                vec![
+                    ZoomItem {
+                        name: "normal".to_string(),
+                        focused: false
+                    },
+                    ZoomItem {
+                        name: "thisone".to_string(),
+                        focused: true
+                    },
+                    ZoomItem {
+                        name: "not".to_string(),
+                        focused: false
+                    },
+                    ZoomItem {
+                        name: "this".to_string(),
+                        focused: false
+                    },
                 ]
             ))
         );

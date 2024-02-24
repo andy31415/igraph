@@ -165,6 +165,9 @@ pub struct GraphBuilder {
 
     /// where nodes are placed
     placement_maps: HashMap<PathBuf, LinkNode>,
+
+    /// What graphs are focused zoomed. Remove links that span non-focused
+    focus_zoomed: HashSet<String>,
 }
 
 impl GraphBuilder {
@@ -420,7 +423,7 @@ impl GraphBuilder {
         self.graph.groups.insert(group_id, g);
     }
 
-    pub fn zoom_in(&mut self, group: &str) {
+    pub fn zoom_in(&mut self, group: &str, focused: bool) {
         let id = match self.group_name_to_id.get(group) {
             Some(id) => id,
             None => {
@@ -430,5 +433,8 @@ impl GraphBuilder {
         };
 
         self.graph.zoomed.insert(id.clone());
+        if focused {
+            self.focus_zoomed.insert(id.clone());
+        }
     }
 }
