@@ -30,12 +30,13 @@ graph {
       keep zapgen::
    }
    
-   # group {
-   #    # Load all the specified targets for grouping
-   #    # Group logic:
-   #    #   - they must be in order of application
-   #    #   - first group wins (a file belongs to one group only)
-   #    gn root ${COMPILE_ROOT} target //src/app/* sources ${CHIP_ROOT}
+   group {
+      # Load all the specified targets for grouping
+      # Group logic:
+      #   - they must be in order of application
+      #   - first group wins (a file belongs to one group only)
+      gn root ${COMPILE_ROOT} target //src/app/* sources ${CHIP_ROOT}
+
    #    
    #    # manually defined group
    #    manual test_group {
@@ -44,10 +45,11 @@ graph {
    #      app::OtherName.cpp
    #    }
 
-   #    # groups together h and cpp files
-   #    # IFF they do not already belong to some other group
-   #    group_source_header
-   # }
+       # groups together h and cpp files
+       # IFF they do not already belong to some other group
+       group_source_header
+   }
+
    zoom {
      test_group
      //src/app

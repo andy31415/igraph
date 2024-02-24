@@ -133,9 +133,20 @@ enum MapInstruction {
     Keep(String),
 }
 
+#[derive(Debug, Clone)]
+enum GroupInstruction {
+    GroupSourceHeader,
+    GroupFromGn {
+        gn_root: String,
+        target: String,
+        source_root: String,
+    },
+}
+
 #[derive(Debug)]
 struct GraphInstructions {
     map_instructions: Vec<MapInstruction>,
+    group_instructions: Vec<GroupInstruction>,
     zoom_items: Vec<String>,
 }
 
@@ -149,6 +160,22 @@ impl GraphInstructions {
                     MapInstruction::DisplayMap { from, to } => MapInstruction::DisplayMap {
                         from: expand_variable(&from, variables),
                         to,
+                    },
+                    other => other,
+                })
+                .collect(),
+            group_instructions: self
+                .group_instructions
+                .into_iter()
+                .map(|instruction| match instruction {
+                    GroupInstruction::GroupFromGn {
+                        gn_root,
+                        target,
+                        source_root,
+                    } => GroupInstruction::GroupFromGn {
+                        gn_root: expand_variable(&gn_root, variables),
+                        target,
+                        source_root: expand_variable(&source_root, variables),
                     },
                     other => other,
                 })
@@ -194,6 +221,54 @@ fn parse_map_instructions(input: &str) -> IResult<&str, Vec<MapInstruction>> {
     .parse(input)
 }
 
+fn parse_group(input: &str) -> IResult<&str, Vec<GroupInstruction>> {
+    many0(alt((
+        value(
+            GroupInstruction::GroupSourceHeader,
+            tag_no_case("group_source_header"),
+        ),
+        tuple((
+            parse_until_whitespace.preceded_by(tuple((
+                tag_no_case("gn"),
+                parse_whitespace,
+                tag_no_case("root"),
+                parse_whitespace,
+            ))),
+            parse_until_whitespace.preceded_by(tuple((
+                parse_whitespace,
+                tag_no_case("target"),
+                parse_whitespace,
+            ))),
+            parse_until_whitespace.preceded_by(tuple((
+                parse_whitespace,
+                tag_no_case("sources"),
+                parse_whitespace,
+            ))),
+        ))
+        .terminated(opt(parse_whitespace))
+        .map(
+            |(gn_root, target, source_root)| GroupInstruction::GroupFromGn {
+                gn_root: gn_root.into(),
+                target: target.into(),
+                source_root: source_root.into(),
+            },
+        ),
+    )))
+    .preceded_by(tuple((
+        opt(parse_whitespace),
+        tag_no_case("group"),
+        opt(parse_whitespace),
+        tag_no_case("{"),
+        opt(parse_whitespace),
+    )))
+    .terminated(tuple((
+        opt(parse_whitespace),
+        tag_no_case("}"),
+        opt(parse_whitespace),
+    )))
+    .parse(input)
+}
+
 fn parse_zoom(input: &str) -> IResult<&str, Vec<String>> {
     many0(
         is_not("\n\r \t#}")
@@ -229,7 +304,7 @@ fn parse_graph<'a>(
     //     - group-instructions
     //     - zoom-list (NOT instructions)
 
-    tuple((parse_map_instructions, opt(parse_zoom)))
+    tuple((parse_map_instructions, parse_group, opt(parse_zoom)))
         .preceded_by(tuple((
             opt(parse_whitespace),
             tag_no_case("graph"),
@@ -242,9 +317,10 @@ fn parse_graph<'a>(
             tag_no_case("}"),
             opt(parse_whitespace),
         )))
-        .map(|(map_instructions, zoom)| {
+        .map(|(map_instructions, group_instructions, zoom)| {
             GraphInstructions {
                 map_instructions,
+                group_instructions,
                 zoom_items: zoom.unwrap_or_default(),
             }
             .mapped(variables)
