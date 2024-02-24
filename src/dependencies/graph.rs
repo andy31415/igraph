@@ -270,13 +270,12 @@ impl GraphBuilder {
                 link_map.contains_key(&l.from.group_id) && link_map.contains_key(&l.to.group_id)
             })
             .filter_map(|l| {
-                if !self.focus_zoomed.is_empty() {
-                    if !(l.from.group_id == l.to.group_id
-                        || self.focus_zoomed.contains(&l.from.group_id)
-                        || self.focus_zoomed.contains(&l.to.group_id))
-                    {
-                        return None;
-                    }
+                if !(self.focus_zoomed.is_empty()
+                    || l.from.group_id == l.to.group_id
+                    || self.focus_zoomed.contains(&l.from.group_id)
+                    || self.focus_zoomed.contains(&l.to.group_id))
+                {
+                    return None;
                 }
 
                 let l = l.try_remap(&link_map);
