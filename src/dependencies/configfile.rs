@@ -322,7 +322,6 @@ fn parse_zoom(input: &str) -> IResult<&str, Vec<String>> {
 fn parse_graph<'a>(
     input: &'a str,
     variables: &'_ HashMap<String, String>,
-    _deps: &'_ DependencyData,
 ) -> IResult<&'a str, GraphInstructions> {
     tuple((parse_map_instructions, parse_group, opt(parse_zoom)))
         .preceded_by(tuple((
@@ -424,9 +423,60 @@ pub async fn parse_config_file(input: &str) -> IResult<&str, ()> {
         }
     }
 
-    let (input, instructions) = parse_graph(input, &variables, &dependency_data)?;
+    let (input, instructions) = parse_graph(input, &variables)?;
 
     debug!("INSTRUCTIONS: {:#?}", instructions);
 
+    // TODO operations:
+    //   - take dependency_data and prune it based on instructions
+    //   - generate a graph with:
+    //      - groupings (warn on duplicates)
+    //      - dependency links
+    //      - zoom-in data (TODO: separate or not?)
+
     Ok((input, ()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_comment_parsing() {
+        assert_eq!(parse_comment("#abc\r\nhello"), Ok(("\r\nhello", "abc")));
+        assert!(parse_comment("not a comment").is_err());
+        assert!(parse_comment("comment later # like here").is_err());
+    }
+
+    #[test]
+    fn test_zoom_parsing() {
+        assert_eq!(parse_zoom("zoom{}"), Ok(("", Vec::default())));
+        assert_eq!(
+            parse_zoom(" #comment\nzoom{  \n  }\n#more comments\n   \n"),
+            Ok(("", Vec::default()))
+        );
+
+        assert_eq!(
+            parse_zoom(
+                "
+         #comment
+         zoom{
+            this
+            is some #notice that whitespace matters and NOT newlines
+            test
+         }"
+            ),
+            Ok((
+                "",
+                vec![
+                    "this".to_string(),
+                    "is".to_string(),
+                    "some".to_string(),
+                    "test".to_string()
+                ]
+            ))
+        );
+
+        assert!(parse_zoom("blah").is_err());
+    }
 }
