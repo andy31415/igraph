@@ -23,7 +23,7 @@ use std::{
 
 use tracing::{debug, error};
 
-use super::graph::Graph;
+use super::{error::Error, graph::Graph};
 
 #[derive(Debug, Default)]
 struct DependencyData {
@@ -344,7 +344,7 @@ fn parse_graph<'a>(
         .parse(input)
 }
 
-pub async fn parse_config_file(input: &str) -> IResult<&str, Graph> {
+pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
     let input = match parse_whitespace(input) {
         Ok((data, _)) => data,
         _ => input,
@@ -359,7 +359,10 @@ pub async fn parse_config_file(input: &str) -> IResult<&str, Graph> {
             parse_until_whitespace,
         ),
     )
-    .parse(input)?;
+    .parse(input)
+    .map_err(|e| Error::ConfigParseError {
+        message: format!("Nom error: {:?}", e),
+    })?;
 
     let mut variables = HashMap::new();
     for (name, value) in input_vars {
@@ -371,7 +374,10 @@ pub async fn parse_config_file(input: &str) -> IResult<&str, Graph> {
 
     let (input, instructions) = tuple((opt(parse_whitespace), parse_input, opt(parse_whitespace)))
         .map(|(_, i, _)| i)
-        .parse(input)?;
+        .parse(input)
+        .map_err(|e| Error::ConfigParseError {
+            message: format!("Nom error: {:?}", e),
+        })?;
 
     debug!("Instructions: {:#?}", instructions);
 
@@ -420,7 +426,16 @@ pub async fn parse_config_file(input: &str) -> IResult<&str, Graph> {
         }
     }
 
-    let (input, instructions) = parse_graph(input, &variables)?;
+    let (input, instructions) =
+        parse_graph(input, &variables).map_err(|e| Error::ConfigParseError {
+            message: format!("Nom error: {:?}", e),
+        })?;
+
+    if !input.is_empty() {
+        return Err(Error::ConfigParseError {
+            message: format!("Not all input was consumed: {:?}", input),
+        });
+    }
 
     debug!("INSTRUCTIONS: {:#?}", instructions);
 
@@ -508,7 +523,7 @@ pub async fn parse_config_file(input: &str) -> IResult<&str, Graph> {
 
     debug!("Final builder: {:#?}", g);
 
-    Ok((input, g.build()))
+    Ok(g.build())
 }
 
 #[cfg(test)]

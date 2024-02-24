@@ -20,4 +20,7 @@ pub enum Error {
 
     #[error("Internal error")]
     Internal { message: String },
+
+    #[error("Error parsing a config file (nom error)")]
+    ConfigParseError { message: String },
 }
