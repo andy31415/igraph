@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone)]
+use tracing::debug;
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct PathMapping {
     pub from: PathBuf,
     pub to: String,
@@ -15,6 +17,19 @@ pub struct PathMapper {
 impl PathMapper {
     pub fn add_mapping(&mut self, mapping: PathMapping) {
         self.mappings.push(mapping);
+    }
+
+    pub fn try_invert(&self, p: &str) -> Option<PathBuf> {
+        self.mappings
+            .iter()
+            .filter_map(|m| {
+                p.strip_prefix(&m.to).map(|tail| {
+                    let mut p = m.from.clone();
+                    p.push(PathBuf::from(tail));
+                    p
+                })
+            })
+            .next()
     }
 
     /// Map the given input path into a final name string

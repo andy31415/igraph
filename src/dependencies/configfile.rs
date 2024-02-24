@@ -1,6 +1,8 @@
 use crate::dependencies::{
     compiledb::parse_compile_database,
     cparse::{all_sources_and_includes, SourceWithIncludes},
+    graph::GraphBuilder,
+    path_mapper::{PathMapper, PathMapping},
 };
 use nom::{
     branch::alt,
@@ -419,12 +421,71 @@ pub async fn parse_config_file(input: &str) -> IResult<&str, ()> {
 
     debug!("INSTRUCTIONS: {:#?}", instructions);
 
-    // TODO operations:
-    //   - take dependency_data and prune it based on instructions
-    //   - generate a graph with:
-    //      - groupings (warn on duplicates)
-    //      - dependency links
-    //      - zoom-in data (TODO: separate or not?)
+    // set up a path mapper
+    let mut mapper = PathMapper::default();
+    for i in instructions.map_instructions.iter() {
+        if let MapInstruction::DisplayMap { from, to } = i {
+            mapper.add_mapping(PathMapping {
+                from: PathBuf::from(from),
+                to: to.clone(),
+            });
+        }
+    }
+    let keep = instructions
+        .map_instructions
+        .iter()
+        .filter_map(|i| match i {
+            MapInstruction::Keep(v) => Some(v),
+            _ => None,
+        })
+        .collect::<HashSet<_>>();
+
+    // Dependency data is prunned based on instructions
+    let mut g = GraphBuilder::new(
+        dependency_data
+            .files
+            .into_iter()
+            .flat_map(|f| f.includes.into_iter().chain(std::iter::once(f.path)))
+            .filter_map(|path| {
+                mapper
+                    .try_map(&path)
+                    .map(|to| PathMapping { from: path, to })
+            })
+            .filter(|m| keep.iter().any(|prefix| m.to.starts_with(*prefix))),
+    );
+
+    // define all the groups
+    for group_instruction in instructions.group_instructions {
+        match group_instruction {
+            GroupInstruction::GroupSourceHeader => {
+                // TODO
+            }
+            GroupInstruction::GroupFromGn {
+                gn_root,
+                target,
+                source_root,
+            } => {
+                // TODO
+            }
+            GroupInstruction::ManualGroup { name, items } => {
+                // items here are mapped, so we have to invert the map to get
+                // the actual name...
+                g.define_group(
+                    &name,
+                    items.into_iter().filter_map(|n| mapper.try_invert(&n)),
+                );
+            }
+        }
+    }
+
+    // mark what is zoomed in ...
+    for name in instructions.zoom_items {
+        g.zoom_in(&name)
+    }
+
+    // TODO - add dependencies
+
+    debug!("Final builder: {:#?}", g);
 
     Ok((input, ()))
 }
@@ -566,15 +627,6 @@ mod tests {
                 ]
             ))
         );
-
-        // input {
-        //   includes from compiledb ${COMPILE_ROOT}/compile_commands.json
-        //   include_dir ${GEN_ROOT}
-
-        //   # Only API will be loaded anyway
-        //   glob ${CHIP_ROOT}/src/app/**
-        //   glob ${GEN_ROOT}/**
-        // }
     }
 
     #[test]

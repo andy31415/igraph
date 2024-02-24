@@ -41,8 +41,11 @@ graph {
       # manually defined group
       manual test_group {
         # Grouping is done by mapped names
-        app::SomeFileName.h
-        app::OtherName.cpp
+        app::TestMissing.h
+
+        app::EventLoggingTypes.h
+        app::InteractionModelHelper.h
+        app::MessageDef/Builder.h
       }
 
        # groups together h and cpp files
