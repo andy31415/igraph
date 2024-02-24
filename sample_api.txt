@@ -3,7 +3,8 @@
 # Variable declarations
 CHIP_ROOT=/home/andrei/devel/connectedhomeip
 COMPILE_ROOT=${CHIP_ROOT}/out/linux-x64-all-clusters-clang
-GEN_ROOT=${COMPILE_ROOT}/gen/third_party/connectedhomeip/examples/all-clusters-app/all-clusters-common/zapgen/
+ZAPGEN_ROOT=${COMPILE_ROOT}/gen/third_party/connectedhomeip/examples/all-clusters-app/all-clusters-common/zapgen/
+CODEGEN_ROOT=${COMPILE_ROOT}/gen/third_party/connectedhomeip/examples/all-clusters-app/all-clusters-common/app
 
 # Sources define what sources to load
 # Headers are generally found, however cpp files need to be loaded
@@ -11,12 +12,14 @@ GEN_ROOT=${COMPILE_ROOT}/gen/third_party/connectedhomeip/examples/all-clusters-a
 # globbing inputs will use any previously defined includes
 input {
     includes from compiledb ${COMPILE_ROOT}/compile_commands.json
-    include_dir ${GEN_ROOT}
+    include_dir ${ZAPGEN_ROOT}
+    include_dir ${CODEGEN_ROOT}
 
     # Only API will be loaded anyway
     glob bad_glob_here
     glob ${CHIP_ROOT}/src/app/**/*
-    glob ${GEN_ROOT}/**/*
+    glob ${ZAPGEN_ROOT}/**/*
+    glob ${CODEGEN_ROOT}/*
 }
 
 # Options for dependency graphs
@@ -24,10 +27,12 @@ input {
 graph {
    map {
       ${CHIP_ROOT}/src/app => app::
-      ${GEN_ROOT} => zapgen::
+      ${ZAPGEN_ROOT} => zapgen::
+      ${CODEGEN_ROOT} => codegen::
 
       keep app::
       keep zapgen::
+      keep codegen::
 
       drop app::clusters/
       drop app::server/java/
@@ -42,13 +47,37 @@ graph {
       gn root ${COMPILE_ROOT} target //src/app/* sources ${CHIP_ROOT}
 
       # manually defined group
-       manual content-app-files {
+      manual content-app-files {
          # Grouping is done by mapped names
          app::app-platform/ContentApp.h
          app::app-platform/ContentApp.cpp
          app::app-platform/ContentAppPlatform.h
          app::app-platform/ContentAppPlatform.cpp
       }
+      
+      manual zap-gen {
+         zapgen::zap-generated/endpoint_config.h
+         zapgen::zap-generated/gen_config.h
+      }
+
+      manual zap-gen-access {
+         zapgen::zap-generated/access.h
+      }
+
+      manual zap-gen-clustercommandhandler {
+         zapgen::zap-generated/IMClusterCommandHandler.cpp
+      }
+      
+      manual dynamic-server {
+         app::dynamic_server/AccessControl.cpp
+         app::dynamic_server/AccessControl.h
+         app::dynamic_server/DynamicDispatcher.cpp
+      }
+
+      # manual read-handler {
+      #   app::ReadHandler.h
+      # }
+
 
        # groups together h and cpp files
        # IFF they do not already belong to some other group
@@ -57,8 +86,12 @@ graph {
 
    zoom {
      # //src/app:app
-     //src/app/icd/server:manager
-     //src/app:constants
+     # //src/app/icd/server:manager
+     # //src/app/icd/server:sender
+     # //src/app/icd/server:ICDStateObserver
+     # //src/app:constants
      # content-app-files
+     # //src/app:interaction-model
+     # read-handler
    }
 }
