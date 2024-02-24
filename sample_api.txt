@@ -39,14 +39,14 @@ graph {
 
       
       # manually defined group
-      manual test_group {
-        # Grouping is done by mapped names
-        app::TestMissing.h
+      # manual test_group {
+      #   # Grouping is done by mapped names
+      #   app::TestMissing.h
 
-        app::EventLoggingTypes.h
-        app::InteractionModelHelper.h
-        app::MessageDef/Builder.h
-      }
+      #   app::EventLoggingTypes.h
+      #   app::InteractionModelHelper.h
+      #   app::MessageDef/Builder.h
+      # }
 
        # groups together h and cpp files
        # IFF they do not already belong to some other group
@@ -54,8 +54,7 @@ graph {
    }
 
    zoom {
-     test_group
-     //src/app
+     //src/app:app
    }
 
 }
