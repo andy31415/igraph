@@ -14,7 +14,7 @@ pub async fn get_items() -> Result<TestData, ServerFnError> {
     let compile_database =
         "/home/andrei/devel/connectedhomeip/out/linux-x64-all-clusters-clang/compile_commands.json";
 
-    let v = crate::igraph::compiledb::parse_compile_database(compile_database)
+    let v = crate::dependencies::compiledb::parse_compile_database(compile_database)
         .await
         .unwrap();
 

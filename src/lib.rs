@@ -5,7 +5,7 @@ pub mod error_template;
 cfg_if::cfg_if! {
 if #[cfg(feature = "ssr")] {
 pub mod fileserv;
-pub mod igraph;
+pub mod dependencies;
 }
 }
 

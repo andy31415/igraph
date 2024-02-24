@@ -1,4 +1,4 @@
-use igraph::igraph::{
+use igraph::dependencies::{
     compiledb::parse_compile_database,
     cparse::{all_sources_and_includes, SourceWithIncludes},
     gn::load_gn_targets,
@@ -426,8 +426,6 @@ async fn parse_data(input: &str) -> IResult<&str, ()> {
             }
         }
     }
-
-    // debug!("Dependency data: {:#?}", dependency_data);
 
     let (input, instructions) = parse_graph(input, &variables, &dependency_data)?;
 

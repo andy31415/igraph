@@ -4,7 +4,7 @@ use tracing::instrument;
 
 use std::path::PathBuf;
 
-use crate::igraph::error::Error;
+use crate::dependencies::error::Error;
 
 #[derive(Debug, PartialEq, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct SourceFileEntry {
