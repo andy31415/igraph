@@ -15,11 +15,10 @@ use nom_supreme::ParserExt;
 
 use std::{
     collections::{HashMap, HashSet},
-    path::{PathBuf},
+    path::PathBuf,
 };
 
 use tracing::{debug, error};
-
 
 #[derive(Debug, Default)]
 struct DependencyData {
@@ -431,4 +430,3 @@ pub async fn parse_config_file(input: &str) -> IResult<&str, ()> {
 
     Ok((input, ()))
 }
-

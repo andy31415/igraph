@@ -1,6 +1,5 @@
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
-
 #[tokio::main]
 async fn main() {
     tracing::subscriber::set_global_default(
@@ -10,6 +9,5 @@ async fn main() {
     )
     .unwrap();
 
-    
     println!("TODO: this needs to be implemented.");
 }
