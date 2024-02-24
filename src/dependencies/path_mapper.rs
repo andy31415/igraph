@@ -1,7 +1,5 @@
 use std::path::{Path, PathBuf};
 
-use tracing::debug;
-
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct PathMapping {
     pub from: PathBuf,

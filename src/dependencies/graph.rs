@@ -3,9 +3,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use tracing::{debug, error, warn};
+use tracing::{debug, error};
 
-use super::path_mapper::{PathMapper, PathMapping};
+use super::{gn::GnTarget, path_mapper::PathMapping};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MappedNode {
@@ -35,13 +35,13 @@ pub struct Group {
     pub nodes: HashSet<MappedNode>,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct LinkNode {
     pub group_id: String,
     pub node_id: Option<String>,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct GraphLink {
     pub from: LinkNode,
     pub to: LinkNode,
@@ -66,6 +66,9 @@ pub struct GraphBuilder {
 
     /// where nodes are placed
     placement_maps: HashMap<PathBuf, LinkNode>,
+
+    // what things were zoomed in
+    zoomed_ids: HashSet<String>,
 }
 
 impl GraphBuilder {
@@ -111,13 +114,80 @@ impl GraphBuilder {
                 let (prefix, _) = name.split_at(idx);
                 name = String::from(prefix);
             }
-            self.define_group(&name, group.into_iter());
+            self.define_group(&name, group);
         }
     }
 
-    pub fn define_group<T>(&mut self, group_name: &str, items: T)
+    // final consumption of self to build the graph
+    pub fn build(self) -> Graph {
+        self.graph
+    }
+
+    fn ensure_link_node(&mut self, path: &Path) -> Option<LinkNode> {
+        let full_location = match self.placement_maps.get(path) {
+            Some(location) => location,
+            None => {
+                let mapped_name = match self.path_maps.get(path) {
+                    Some(mapping) => mapping.to.clone(),
+                    None => {
+                        error!("Unexpected missing mapping for {:?}", path);
+                        return None;
+                    }
+                };
+
+                // have to create a stand-alone group
+                self.define_group(&mapped_name, [path]);
+                self.placement_maps.get(path).expect("just created a group")
+            }
+        };
+
+        if self.zoomed_ids.contains(&full_location.group_id) {
+            Some(full_location.clone())
+        } else {
+            Some(LinkNode {
+                group_id: full_location.group_id.clone(),
+                node_id: None,
+            })
+        }
+    }
+
+    pub fn add_link(&mut self, from: &Path, to: &Path) {
+        let from = match self.ensure_link_node(from) {
+            Some(p) => p,
+            None => {
+                debug!("NOT MAPPED: {:?}", from);
+                return;
+            }
+        };
+
+        let to = match self.ensure_link_node(to) {
+            Some(p) => p,
+            None => {
+                debug!("NOT MAPPED: {:?}", to);
+                return;
+            }
+        };
+
+        self.graph.links.insert(GraphLink { from, to });
+    }
+
+    pub fn add_groups_from_gn(&mut self, gn_groups: Vec<GnTarget>) {
+        for target in gn_groups {
+            let items = target
+                .sources
+                .into_iter()
+                .filter(|p| self.known_path(p))
+                .collect::<Vec<_>>();
+            if !items.is_empty() {
+                self.define_group(&target.name, items);
+            }
+        }
+    }
+
+    pub fn define_group<T, P>(&mut self, group_name: &str, items: T)
     where
-        T: Iterator<Item = PathBuf>,
+        T: IntoIterator<Item = P>,
+        P: AsRef<Path>,
     {
         if self.group_name_to_id.contains_key(group_name) {
             error!("Group {:?} already exists", group_name);
@@ -132,12 +202,22 @@ impl GraphBuilder {
         let group_id = uuid::Uuid::now_v6(&[1, 0, 0, 0, 0, 0]).to_string();
 
         for path in items {
-            if let Some(placement) = self.placement_maps.get(&path) {
-                error!("{:?} already placed in {:?}", path, placement.group_id);
+            let path = path.as_ref();
+            if let Some(placement) = self.placement_maps.get(path) {
+                let duplicate_pos = self
+                    .graph
+                    .groups
+                    .get(&placement.group_id)
+                    .map(|g| g.name.clone())
+                    .unwrap_or_else(|| format!("ID: {}", placement.group_id));
+                error!(
+                    "{:?} in both: {:?} and {:?}",
+                    path, group_name, duplicate_pos
+                );
                 continue;
             }
 
-            let m = match self.path_maps.get(&path) {
+            let m = match self.path_maps.get(path) {
                 Some(m) => m,
                 None => {
                     error!("{:?} is missing a mapping", path);
@@ -148,12 +228,12 @@ impl GraphBuilder {
             let node_id = uuid::Uuid::now_v6(&[0, 0, 0, 0, 0, g.nodes.len() as u8]).to_string();
             g.nodes.insert(MappedNode {
                 id: node_id.clone(),
-                path: path.clone(),
+                path: PathBuf::from(path),
                 display_name: m.to.clone(),
             });
 
             self.placement_maps.insert(
-                path,
+                PathBuf::from(path),
                 LinkNode {
                     group_id: group_id.clone(),
                     node_id: Some(node_id),
@@ -175,6 +255,8 @@ impl GraphBuilder {
             }
         };
 
+        self.zoomed_ids.insert(id.clone());
+
         match self.graph.groups.get_mut(id) {
             Some(value) => value.zoomed = true,
             None => {
@@ -182,7 +264,6 @@ impl GraphBuilder {
                     "Internal error group {:?} with id {:?} was NOT found",
                     group, id
                 );
-                return;
             }
         }
     }

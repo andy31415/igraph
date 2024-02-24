@@ -1,6 +1,7 @@
 use crate::dependencies::{
     compiledb::parse_compile_database,
     cparse::{all_sources_and_includes, SourceWithIncludes},
+    gn::load_gn_targets,
     graph::GraphBuilder,
     path_mapper::{PathMapper, PathMapping},
 };
@@ -21,6 +22,8 @@ use std::{
 };
 
 use tracing::{debug, error};
+
+use super::graph::Graph;
 
 #[derive(Debug, Default)]
 struct DependencyData {
@@ -341,7 +344,7 @@ fn parse_graph<'a>(
         .parse(input)
 }
 
-pub async fn parse_config_file(input: &str) -> IResult<&str, ()> {
+pub async fn parse_config_file(input: &str) -> IResult<&str, Graph> {
     let input = match parse_whitespace(input) {
         Ok((data, _)) => data,
         _ => input,
@@ -444,12 +447,13 @@ pub async fn parse_config_file(input: &str) -> IResult<&str, ()> {
     let mut g = GraphBuilder::new(
         dependency_data
             .files
-            .into_iter()
-            .flat_map(|f| f.includes.into_iter().chain(std::iter::once(f.path)))
+            .iter()
+            .flat_map(|f| f.includes.iter().chain(std::iter::once(&f.path)))
             .filter_map(|path| {
-                mapper
-                    .try_map(&path)
-                    .map(|to| PathMapping { from: path, to })
+                mapper.try_map(path).map(|to| PathMapping {
+                    from: path.clone(),
+                    to,
+                })
             })
             .filter(|m| keep.iter().any(|prefix| m.to.starts_with(*prefix))),
     );
@@ -458,16 +462,22 @@ pub async fn parse_config_file(input: &str) -> IResult<&str, ()> {
     for group_instruction in instructions.group_instructions {
         match group_instruction {
             GroupInstruction::GroupSourceHeader => {
-                g.group_extensions(&["h", "cpp", "hpp", "c", "cxx"])
+                g.group_extensions(&["h", "cpp", "hpp", "c", "cxx"]);
             }
-
             GroupInstruction::GroupFromGn {
                 gn_root,
                 target,
                 source_root,
-            } => {
-                // TODO
-            }
+            } => match load_gn_targets(
+                &PathBuf::from(gn_root),
+                &PathBuf::from(source_root),
+                &target,
+            )
+            .await
+            {
+                Ok(targets) => g.add_groups_from_gn(targets),
+                Err(e) => error!("Failed to load GN targets: {:?}", e),
+            },
             GroupInstruction::ManualGroup { name, items } => {
                 // items here are mapped, so we have to invert the map to get
                 // the actual name...
@@ -484,11 +494,21 @@ pub async fn parse_config_file(input: &str) -> IResult<&str, ()> {
         g.zoom_in(&name)
     }
 
-    // TODO - add dependencies
+    for dep in dependency_data.files {
+        if !g.known_path(&dep.path) {
+            continue;
+        }
+        for dest in dep.includes {
+            if !g.known_path(&dest) {
+                continue;
+            }
+            g.add_link(&dep.path, &dest);
+        }
+    }
 
     debug!("Final builder: {:#?}", g);
 
-    Ok((input, ()))
+    Ok((input, g.build()))
 }
 
 #[cfg(test)]
