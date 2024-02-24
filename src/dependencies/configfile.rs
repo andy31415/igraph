@@ -144,7 +144,7 @@ pub enum GroupInstruction {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct GraphInstructions {
     map_instructions: Vec<MapInstruction>,
     group_instructions: Vec<GroupInstruction>,
@@ -187,8 +187,7 @@ impl GraphInstructions {
 }
 
 fn parse_map_instructions(input: &str) -> IResult<&str, Vec<MapInstruction>> {
-    separated_list0(
-        parse_whitespace,
+    many0(
         alt((
             separated_pair(
                 parse_until_whitespace,
@@ -206,7 +205,8 @@ fn parse_map_instructions(input: &str) -> IResult<&str, Vec<MapInstruction>> {
                     parse_whitespace,
                 )))
                 .map(|s| MapInstruction::Keep(s.into())),
-        )),
+        ))
+        .terminated(parse_whitespace),
     )
     .preceded_by(tuple((
         tag_no_case("map"),
@@ -471,10 +471,52 @@ mod tests {
     }
 
     #[test]
+    fn test_gn_instruction() {
+        let mut variables = HashMap::new();
+        variables.insert("Foo".into(), "Bar".into());
+
+        assert_eq!(
+            parse_graph(
+                "
+        graph {
+              map {
+              }
+   
+              group {
+                gn root test1 target //my/target/* sources srcs1
+                gn root test/${Foo}/blah target //* sources ${Foo}
+              }
+        }
+        ",
+                &variables
+            ),
+            Ok((
+                "",
+                GraphInstructions {
+                    map_instructions: Vec::default(),
+                    group_instructions: vec![
+                        GroupInstruction::GroupFromGn {
+                            gn_root: "test1".into(),
+                            target: "//my/target/*".into(),
+                            source_root: "srcs1".into()
+                        },
+                        GroupInstruction::GroupFromGn {
+                            gn_root: "test/Bar/blah".into(),
+                            target: "//*".into(),
+                            source_root: "Bar".into()
+                        },
+                    ],
+                    zoom_items: Vec::default(),
+                }
+            ))
+        );
+    }
+
+    #[test]
     fn test_zoom_parsing() {
         assert_eq!(parse_zoom("zoom{}"), Ok(("", Vec::default())));
         assert_eq!(
-            parse_zoom(" #comment\nzoom{  \n  }\n#more comments\n   \n"),
+            parse_zoom(" #comment\nzoom {  \n  }\n#more comments\n   \n"),
             Ok(("", Vec::default()))
         );
 
