@@ -6,7 +6,7 @@ use std::{
 use serde::Serialize;
 use tera::{Context, Tera};
 use tokio::io::{AsyncWrite, AsyncWriteExt, BufWriter};
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 use super::{error::Error, gn::GnTarget, path_mapper::PathMapping};
 
@@ -31,11 +31,39 @@ pub struct Group {
     /// nice display name
     pub name: String,
 
+    /// If this groop is zoomed in
+    pub zoomed: bool,
+
     // some color name to use
     pub color: String,
 
     /// what are the nodes
     pub nodes: HashSet<MappedNode>,
+}
+
+impl Group {
+    /// re-creates a new version of the group with all unique IDs changed new
+    ///
+    /// returns a brand new unique id for the group as well as a remade version
+    pub fn zoomed(&self, id_map: &mut HashMap<String, String>) -> Self {
+        let mut nodes = HashSet::new();
+
+        for n in self.nodes.iter() {
+            let new_id = format!("z{}", n.id);
+            nodes.insert(MappedNode {
+                id: new_id.clone(),
+                path: n.path.clone(),
+                display_name: n.display_name.clone(),
+            });
+            id_map.insert(n.id.clone(), new_id);
+        }
+        Self {
+            name: format!("{} (ZOOM)", self.name),
+            zoomed: true,
+            color: self.color.clone(), // TODO: nicer colors?
+            nodes,
+        }
+    }
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Serialize)]
@@ -55,12 +83,33 @@ impl LinkNode {
             }
         }
     }
+
+    pub fn try_remap(&self, m: &HashMap<String, String>) -> Option<Self> {
+        let node_id = match self.node_id {
+            Some(ref id) => Some(m.get(id)?.clone()),
+            None => None,
+        };
+        
+        Some(Self {
+            group_id: m.get(&self.group_id)?.clone(),
+            node_id,
+        })
+    }
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Serialize)]
 pub struct GraphLink {
     pub from: LinkNode,
     pub to: LinkNode,
+}
+
+impl GraphLink {
+    pub fn try_remap(&self, m: &HashMap<String, String>) -> Option<Self> {
+        Some(Self {
+            from: self.from.try_remap(m)?,
+            to: self.to.try_remap(m)?,
+        })
+    }
 }
 
 #[derive(Debug, Default, Serialize)]
@@ -166,7 +215,59 @@ impl GraphBuilder {
     }
 
     // final consumption of self to build the graph
-    pub fn build(self) -> Graph {
+    pub fn build(mut self) -> Graph {
+        let mut link_map = HashMap::new();
+
+        let mut new_groups = Vec::new();
+
+        for (id, group) in self
+            .graph
+            .groups
+            .iter()
+            .filter(|(id, _)| self.graph.zoomed.contains(*id))
+        {
+            let new_id = format!("z{}", id);
+            link_map.insert(id.clone(), new_id.clone());
+            new_groups.push((new_id, group.zoomed(&mut link_map)));
+        }
+        // zoom changed now
+        self.graph.zoomed = new_groups.iter().map(|(id, _)| id.clone()).collect();
+
+        self.graph.groups.extend(new_groups);
+
+        let zoom_links = self
+            .graph
+            .links
+            .iter()
+            .filter(|l| {
+                link_map.contains_key(&l.from.group_id) && link_map.contains_key(&l.to.group_id)
+            })
+            .filter_map(|l| {
+                let l = l.try_remap(&link_map);
+                if l.is_none() {
+                    warn!("FAILED TO REMAP: {:?}", l);
+                };
+                l
+            })
+            .collect::<HashSet<_>>();
+
+        // Create group links only here
+        let links = self
+            .graph
+            .links
+            .iter()
+            .map(|l| GraphLink {
+                from: l.from.without_node(),
+                to: l.to.without_node(),
+            })
+            .collect::<HashSet<_>>();
+
+        self.graph.links = {
+            let mut v = HashSet::new();
+            v.extend(links);
+            v.extend(zoom_links);
+            v
+        };
         self.graph
     }
 
@@ -188,14 +289,7 @@ impl GraphBuilder {
             }
         };
 
-        if self.graph.zoomed.contains(&full_location.group_id) {
-            Some(full_location.clone())
-        } else {
-            Some(LinkNode {
-                group_id: full_location.group_id.clone(),
-                node_id: None,
-            })
-        }
+        Some(full_location.clone())
     }
 
     pub fn add_link(&mut self, from: &Path, to: &Path) {
@@ -213,17 +307,6 @@ impl GraphBuilder {
                 debug!("NOT MAPPED: {:?}", to);
                 return;
             }
-        };
-
-        let from = if to.node_id.is_none() {
-            from.without_node()
-        } else {
-            from
-        };
-        let to = if from.node_id.is_none() {
-            to.without_node()
-        } else {
-            to
         };
 
         if from == to {
@@ -257,6 +340,7 @@ impl GraphBuilder {
         }
 
         let mut g = Group {
+            zoomed: false,
             name: group_name.into(),
             color: color.into(),
             nodes: HashSet::default(),
