@@ -6,10 +6,10 @@ use igraph::igraph::{
 };
 use nom::{
     branch::alt,
-    bytes::complete::{is_not, tag},
+    bytes::complete::{is_not, tag_no_case, take_until},
     character::complete::{char as parsed_char, multispace1},
     combinator::{opt, value},
-    multi::{many1, separated_list0},
+    multi::{many0, many1, separated_list0},
     sequence::{pair, separated_pair, tuple},
     IResult, Parser,
 };
@@ -81,19 +81,19 @@ fn parse_input_command(input: &str) -> IResult<&str, InputCommand> {
     alt((
         parse_until_whitespace
             .preceded_by(tuple((
-                tag("includes"),
+                tag_no_case("includes"),
                 parse_whitespace,
-                tag("from"),
+                tag_no_case("from"),
                 parse_whitespace,
-                tag("compiledb"),
+                tag_no_case("compiledb"),
                 parse_whitespace,
             )))
             .map(|s| InputCommand::IncludesFromCompileDb(s.into())),
         parse_until_whitespace
-            .preceded_by(tuple((tag("glob"), parse_whitespace)))
+            .preceded_by(tuple((tag_no_case("glob"), parse_whitespace)))
             .map(|s| InputCommand::Glob(s.into())),
         parse_until_whitespace
-            .preceded_by(tuple((tag("include_dir"), parse_whitespace)))
+            .preceded_by(tuple((tag_no_case("include_dir"), parse_whitespace)))
             .map(|s| InputCommand::IncludeDirectory(s.into())),
     ))
     .parse(input)
@@ -110,13 +110,13 @@ fn parse_input(input: &str) -> IResult<&str, Vec<InputCommand>> {
     // }
     tuple((
         tuple((
-            tag("input"),
+            tag_no_case("input"),
             parse_whitespace,
-            tag("{"),
+            tag_no_case("{"),
             opt(parse_whitespace),
         )),
         separated_list0(parse_whitespace, parse_input_command),
-        tuple((opt(parse_whitespace), tag("}"), opt(parse_whitespace))),
+        tuple((opt(parse_whitespace), tag_no_case("}"), opt(parse_whitespace))),
     ))
     .map(|(_, l, _)| l)
     .parse(input)
@@ -149,6 +149,7 @@ impl GraphInstructions {
                     other => other,
                 })
                 .collect(),
+            zoom_items: self.zoom_items,
         }
     }
 }
@@ -159,7 +160,7 @@ fn parse_map_instructions(input: &str) -> IResult<&str, Vec<MapInstruction>> {
         alt((
             separated_pair(
                 parse_until_whitespace,
-                tuple((parse_whitespace, tag("=>"), parse_whitespace)),
+                tuple((parse_whitespace, tag_no_case("=>"), parse_whitespace)),
                 parse_until_whitespace,
             )
             .map(|(from, to)| MapInstruction::DisplayMap {
@@ -169,43 +170,42 @@ fn parse_map_instructions(input: &str) -> IResult<&str, Vec<MapInstruction>> {
             parse_until_whitespace
                 .preceded_by(tuple((
                     opt(parse_whitespace),
-                    tag("keep"),
+                    tag_no_case("keep"),
                     parse_whitespace,
                 )))
                 .map(|s| MapInstruction::Keep(s.into())),
         )),
     )
     .preceded_by(tuple((
-        tag("map"),
+        tag_no_case("map"),
         parse_whitespace,
-        tag("{"),
+        tag_no_case("{"),
         parse_whitespace,
     )))
     .terminated(tuple((
         opt(parse_whitespace),
-        tag("}"),
+        tag_no_case("}"),
         opt(parse_whitespace),
     )))
     .parse(input)
 }
 
 fn parse_zoom(input: &str) -> IResult<&str, Vec<String>> {
-    separated_list0(
-        parse_whitespace,
-        parse_until_whitespace
-            .map(String::from)
-            .preceded_by(opt(parse_until_whitespace)),
+    many0(
+        is_not("\n\r \t#}")
+            .preceded_by(opt(parse_whitespace))
+            .map(String::from),
     )
     .preceded_by(tuple((
         opt(parse_whitespace),
-        tag("zoom"),
-        parse_whitespace,
-        tag("{"),
+        tag_no_case("zoom"),
+        opt(parse_whitespace),
+        tag_no_case("{"),
         opt(parse_whitespace),
     )))
     .terminated(tuple((
         opt(parse_whitespace),
-        tag("}"),
+        tag_no_case("}"),
         opt(parse_whitespace),
     )))
     .parse(input)
@@ -228,14 +228,14 @@ fn parse_graph<'a>(
     tuple((parse_map_instructions, opt(parse_zoom)))
         .preceded_by(tuple((
             opt(parse_whitespace),
-            tag("graph"),
+            tag_no_case("graph"),
             parse_whitespace,
-            tag("{"),
+            tag_no_case("{"),
             opt(parse_whitespace),
         )))
         .terminated(tuple((
             opt(parse_whitespace),
-            tag("}"),
+            tag_no_case("}"),
             opt(parse_whitespace),
         )))
         .map(|(map_instructions, zoom)| {
@@ -246,7 +246,7 @@ fn parse_graph<'a>(
             .mapped(variables)
         })
         .parse(input)
-
+    
     // graph {
     //    map {
     //      ${CHIP_ROOT}/src/app => app::
@@ -279,7 +279,7 @@ async fn parse_data(input: &str) -> IResult<&str, ()> {
     // First, parse all variables
     let (input, input_vars) = separated_list0(
         parse_whitespace,
-        separated_pair(parse_variable_name, tag("="), parse_until_whitespace),
+        separated_pair(parse_variable_name, tag_no_case("="), parse_until_whitespace),
     )
     .parse(input)?;
 

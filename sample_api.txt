@@ -48,9 +48,9 @@ graph {
    #    # IFF they do not already belong to some other group
    #    group_source_header
    # }
-
    zoom {
      test_group
      //src/app
    }
+
 }
