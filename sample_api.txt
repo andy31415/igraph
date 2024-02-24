@@ -56,7 +56,9 @@ graph {
    }
 
    zoom {
-     //src/app:app
+     # //src/app:app
+     //src/app/icd/server:manager
+     //src/app:constants
      # content-app-files
    }
 }

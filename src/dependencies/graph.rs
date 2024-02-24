@@ -31,9 +31,6 @@ pub struct Group {
     /// nice display name
     pub name: String,
 
-    /// are the nodes expanded out
-    pub zoomed: bool,
-
     // some color name to use
     pub color: String,
 
@@ -70,6 +67,7 @@ pub struct GraphLink {
 pub struct Graph {
     groups: HashMap<String, Group>,
     links: HashSet<GraphLink>,
+    zoomed: HashSet<String>,
 }
 
 impl Graph {
@@ -118,9 +116,6 @@ pub struct GraphBuilder {
 
     /// where nodes are placed
     placement_maps: HashMap<PathBuf, LinkNode>,
-
-    // what things were zoomed in
-    zoomed_ids: HashSet<String>,
 }
 
 impl GraphBuilder {
@@ -193,7 +188,7 @@ impl GraphBuilder {
             }
         };
 
-        if self.zoomed_ids.contains(&full_location.group_id) {
+        if self.graph.zoomed.contains(&full_location.group_id) {
             Some(full_location.clone())
         } else {
             Some(LinkNode {
@@ -263,7 +258,6 @@ impl GraphBuilder {
 
         let mut g = Group {
             name: group_name.into(),
-            zoomed: false,
             color: color.into(),
             nodes: HashSet::default(),
         };
@@ -335,16 +329,6 @@ impl GraphBuilder {
             }
         };
 
-        self.zoomed_ids.insert(id.clone());
-
-        match self.graph.groups.get_mut(id) {
-            Some(value) => value.zoomed = true,
-            None => {
-                error!(
-                    "Internal error group {:?} with id {:?} was NOT found",
-                    group, id
-                );
-            }
-        }
+        self.graph.zoomed.insert(id.clone());
     }
 }

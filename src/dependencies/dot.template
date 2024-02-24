@@ -4,11 +4,13 @@ digraph include_graph {
   node [shape=rectangle, style=filled, fontname="monospace"]
 
 {% for id, group in groups %}
-  {%- if group.zoomed %}
+  {%- if zoomed is containing(id) %}
   subgraph cluster_{{id}} {
     label="{{group.name}}";
     color="{{group.color}}";
     style=filled;
+
+    {{id}} [style=invis];
     
   {%- for node in group.nodes %}
     {{node.id}} [label="{{node.display_name}}", fillcolor="white"]
@@ -50,10 +52,17 @@ digraph include_graph {
 
 {% for link in links %}
    {%- if not link.from.group_id or link.from.group_id != link.to.group_id %}
-   {% if link.from.node_id %} {{ link.from.node_id }} {% else %} {{link.from.group_id}} {% endif -%}
-   ->
-   {%- if link.to.node_id %} {{ link.to.node_id }} {% else %} {{link.to.group_id}} {% endif -%}
-   ;
+     {% if link.from.node_id %} {{ link.from.node_id }} {% else %} {{link.from.group_id}} {% endif -%}
+     ->
+     {%- if link.to.node_id %} {{ link.to.node_id }} {% else %} {{link.to.group_id}} {% endif -%}
+     [
+     {% if not link.to.node_id and zoomed is containing(link.to.group_id) -%} 
+       lhead="cluster_{{link.to.group_id}}"
+     {%- endif -%}
+     {% if not link.from.node_id and zoomed is containing(link.from.group_id) -%} 
+       ltail="cluster_{{link.from.group_id}}"
+     {%- endif -%}
+   ];
    {%- endif %}
 {%- endfor %}
 }
