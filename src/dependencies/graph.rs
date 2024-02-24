@@ -36,9 +36,15 @@ pub struct Group {
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct GraphLink {
+pub struct LinkNode {
     pub group_id: String,
     pub node_id: Option<String>,
+}
+
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct GraphLink {
+    pub from: LinkNode,
+    pub to: LinkNode,
 }
 
 #[derive(Debug, Default)]
@@ -59,7 +65,7 @@ pub struct GraphBuilder {
     group_name_to_id: HashMap<String, String>,
 
     /// where nodes are placed
-    placement_maps: HashMap<PathBuf, GraphLink>,
+    placement_maps: HashMap<PathBuf, LinkNode>,
 }
 
 impl GraphBuilder {
@@ -148,7 +154,7 @@ impl GraphBuilder {
 
             self.placement_maps.insert(
                 path,
-                GraphLink {
+                LinkNode {
                     group_id: group_id.clone(),
                     node_id: Some(node_id),
                 },
