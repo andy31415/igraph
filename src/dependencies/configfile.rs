@@ -543,19 +543,22 @@ mod tests {
 
         assert!(parse_zoom("blah").is_err());
     }
-    
+
     #[test]
-    fn test_expand_var(){
+    fn test_expand_var() {
         let mut vars = HashMap::new();
         vars.insert("foo".into(), "bar".into());
         vars.insert("another".into(), "one".into());
         vars.insert("test".into(), "1234".into());
         vars.insert("theone".into(), "final".into());
-        
+
         assert_eq!(expand_variable("xyz", &vars), "xyz");
         assert_eq!(expand_variable("${foo}", &vars), "bar");
         assert_eq!(expand_variable("${another}", &vars), "one");
-        assert_eq!(expand_variable("${foo}/${another}/${foo}", &vars), "bar/one/bar");
+        assert_eq!(
+            expand_variable("${foo}/${another}/${foo}", &vars),
+            "bar/one/bar"
+        );
         assert_eq!(expand_variable("${the${another}}", &vars), "final");
     }
 }
