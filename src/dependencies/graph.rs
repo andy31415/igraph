@@ -260,6 +260,7 @@ impl GraphBuilder {
                 from: l.from.without_node(),
                 to: l.to.without_node(),
             })
+            .filter(|l| l.from != l.to)
             .collect::<HashSet<_>>();
 
         self.graph.links = {

@@ -17,8 +17,6 @@ digraph include_graph {
   {%- else %}
   {{id}} [ 
     label=
-    {%- set cnt = group.nodes | length -%}
-    {% if cnt > 1 %}
     <
       <TABLE BORDER="0">
         <TR><TD COLSPAN="2" BGCOLOR="yellow" ALIGN="left">{{group.name}}</TD></TR>
@@ -32,13 +30,7 @@ digraph include_graph {
         <TR><TD WIDTH="20"></TD><TD ALIGN="left">{{node.display_name}}</TD></TR>
       {% endfor %}
       </TABLE>
-   >
-   {% else %}
-   "
-   {%- set node = group.nodes | first %}
-   {{node.display_name}}
-   ",
-   {% endif %}
+   >,
    fillcolor="{{group.color}}" ];
   {%- endif -%}
 {% endfor %}
