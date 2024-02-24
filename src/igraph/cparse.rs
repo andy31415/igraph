@@ -11,7 +11,7 @@ use tokio::{
     io::{AsyncBufReadExt as _, BufReader},
     task::JoinSet,
 };
-use tracing::{debug, error, trace};
+use tracing::{error, trace};
 
 /// Attempt to make the full path of head::tail
 /// returns None if that fails (e.g. path does not exist)
@@ -79,7 +79,7 @@ pub async fn extract_includes(
             let inc_type = captures.get(1).unwrap().as_str();
             let relative_path = PathBuf::from(captures.get(2).unwrap().as_str());
 
-            debug!("Possible include: {:?}", relative_path);
+            trace!("Possible include: {:?}", relative_path);
 
             if inc_type == "\"" {
                 if let Some(p) = try_resolve(&parent_dir, &relative_path) {
@@ -98,7 +98,7 @@ pub async fn extract_includes(
                 // Debug only as this is VERY common due to C++ and system inclues,
                 // like "list", "vector", "string" or even platform specific like "jni.h"
                 // or non-enabled things (like openthread on a non-thread platform)
-                debug!("Include {:?} could not be resolved", relative_path);
+                trace!("Include {:?} could not be resolved", relative_path);
             }
         }
     }

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use tokio::{fs::File, io::AsyncReadExt as _};
-use tracing::{instrument};
+use tracing::instrument;
 
 use std::path::PathBuf;
 

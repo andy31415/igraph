@@ -22,35 +22,35 @@ input {
 # Options for dependency graphs
 # By default NOTHING is kept and NOTHING is grouped
 graph {
-   name_map {
-     ${CHIP_ROOT}/src/app => app::
-     ${GEN_ROOT} => zapgen::
-   }
-
-   keep_map app::
-   keep_map zapgen::
-   
-   group {
-      # Load all the specified targets for grouping
-      # Group logic:
-      #   - they must be in order of application
-      #   - first group wins (a file belongs to one group only)
-      gn root ${COMPILE_ROOT} target //src/app/* sources ${CHIP_ROOT}
+   map {
+      ${CHIP_ROOT}/src/app => app::
+      ${GEN_ROOT} => zapgen::
       
-      # manually defined group
-      manual test_group {
-        # support mapped names by default
-        app::SomeFileName.h
-        app::OtherName.cpp
-      }
-
-      # groups together h and cpp files
-      # IFF they do not already belong to some other group
-      group_source_header
+      keep app::
+      keep zapgen::
    }
+   
+   # group {
+   #    # Load all the specified targets for grouping
+   #    # Group logic:
+   #    #   - they must be in order of application
+   #    #   - first group wins (a file belongs to one group only)
+   #    gn root ${COMPILE_ROOT} target //src/app/* sources ${CHIP_ROOT}
+   #    
+   #    # manually defined group
+   #    manual test_group {
+   #      # support mapped names by default
+   #      app::SomeFileName.h
+   #      app::OtherName.cpp
+   #    }
 
-   zoom {
-     test_group
-     //src/app
-   }
+   #    # groups together h and cpp files
+   #    # IFF they do not already belong to some other group
+   #    group_source_header
+   # }
+
+   # zoom {
+   #   test_group
+   #   //src/app
+   # }
 }

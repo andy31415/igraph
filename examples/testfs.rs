@@ -20,7 +20,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use tracing::{error, info, trace};
+use tracing::{debug, error, info};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 #[derive(Debug, Default)]
@@ -116,10 +116,129 @@ fn parse_input(input: &str) -> IResult<&str, Vec<InputCommand>> {
             opt(parse_whitespace),
         )),
         separated_list0(parse_whitespace, parse_input_command),
-        tuple((parse_whitespace, tag("}"), opt(parse_whitespace))),
+        tuple((opt(parse_whitespace), tag("}"), opt(parse_whitespace))),
     ))
     .map(|(_, l, _)| l)
     .parse(input)
+}
+
+/// Defines an instruction regarding name mapping
+#[derive(Debug)]
+enum MapInstruction {
+    DisplayMap { from: String, to: String },
+    Keep(String),
+}
+
+#[derive(Debug)]
+struct GraphInstructions {
+    map_instructions: Vec<MapInstruction>,
+}
+
+impl GraphInstructions {
+    fn mapped(self, variables: &HashMap<String, String>) -> Self {
+        Self {
+            map_instructions: self
+                .map_instructions
+                .into_iter()
+                .map(|instruction| match instruction {
+                    MapInstruction::DisplayMap { from, to } => MapInstruction::DisplayMap {
+                        from: expand_variable(&from, variables),
+                        to,
+                    },
+                    other => other,
+                })
+                .collect(),
+        }
+    }
+}
+
+fn parse_map_instructions(input: &str) -> IResult<&str, Vec<MapInstruction>> {
+    separated_list0(
+        parse_whitespace,
+        alt((
+            separated_pair(
+                parse_until_whitespace,
+                tuple((parse_whitespace, tag("=>"), parse_whitespace)),
+                parse_until_whitespace,
+            )
+            .map(|(from, to)| MapInstruction::DisplayMap {
+                from: from.into(),
+                to: to.into(),
+            }),
+            parse_until_whitespace
+                .preceded_by(tuple((
+                    opt(parse_whitespace),
+                    tag("keep"),
+                    parse_whitespace,
+                )))
+                .map(|s| MapInstruction::Keep(s.into())),
+        )),
+    )
+    .preceded_by(tuple((
+        tag("map"),
+        parse_whitespace,
+        tag("{"),
+        parse_whitespace,
+    )))
+    .terminated(tuple((
+        opt(parse_whitespace),
+        tag("}"),
+        opt(parse_whitespace),
+    )))
+    .parse(input)
+}
+
+fn parse_graph<'a>(
+    input: &'a str,
+    variables: &'_ HashMap<String, String>,
+    _deps: &'_ DependencyData,
+) -> IResult<&'a str, GraphInstructions> {
+    // TODO path:
+    //
+    // - decode into instructions
+    // - make sure paths are expanded as variables
+    // - overall:
+    //     - map-instructions (DONE, no expand YET)
+    //     - group-instructions
+    //     - zoom-list (NOT instructions)
+
+    tuple((parse_map_instructions,))
+        .preceded_by(tuple((
+            opt(parse_whitespace),
+            tag("graph"),
+            parse_whitespace,
+            tag("{"),
+            opt(parse_whitespace),
+        )))
+        .terminated(tuple((
+            opt(parse_whitespace),
+            tag("}"),
+            opt(parse_whitespace),
+        )))
+        .map(|(map_instructions,)| GraphInstructions { map_instructions }.mapped(variables))
+        .parse(input)
+
+    // graph {
+    //    map {
+    //      ${CHIP_ROOT}/src/app => app::
+    //      ${GEN_ROOT} => zapgen::
+    //
+    //      keep app::
+    //      keep zapgen::
+    //    }
+    //    group {
+    //       gn root ${COMPILE_ROOT} target //src/app/* sources ${CHIP_ROOT}
+    //       manual test_group {
+    //         app::SomeFileName.h
+    //         app::OtherName.cpp
+    //       }
+    //       group_source_header
+    //    }
+    //    zoom {
+    //      test_group
+    //      //src/app
+    //    }
+    // }
 }
 
 async fn parse_data(input: &str) -> IResult<&str, ()> {
@@ -140,14 +259,14 @@ async fn parse_data(input: &str) -> IResult<&str, ()> {
         variables.insert(name.to_string(), expand_variable(value, &variables));
     }
 
-    trace!("Resolved variables: {:#?}", variables);
-    trace!("Parsing instructions...");
+    debug!("Resolved variables: {:#?}", variables);
+    debug!("Parsing instructions...");
 
     let (input, instructions) = tuple((opt(parse_whitespace), parse_input, opt(parse_whitespace)))
         .map(|(_, i, _)| i)
         .parse(input)?;
 
-    trace!("Instructions: {:#?}", instructions);
+    debug!("Instructions: {:#?}", instructions);
 
     let mut dependency_data = DependencyData::default();
 
@@ -194,7 +313,11 @@ async fn parse_data(input: &str) -> IResult<&str, ()> {
         }
     }
 
-    trace!("Dependency data: {:#?}", dependency_data);
+    // debug!("Dependency data: {:#?}", dependency_data);
+
+    let (input, instructions) = parse_graph(input, &variables, &dependency_data)?;
+
+    debug!("INSTRUCTIONS: {:#?}", instructions);
 
     Ok((input, ()))
 }
@@ -276,7 +399,7 @@ async fn main() {
     let includes = includes.into_iter().collect::<Vec<_>>();
 
     info!("Processing with {} includes", includes.len());
-    trace!("Processing with includes {:#?}", includes);
+    debug!("Processing with includes {:#?}", includes);
 
     let data = all_sources_and_includes(
         glob::glob("/home/andrei/devel/connectedhomeip/src/app/**/*").expect("Valid pattern"),
@@ -293,7 +416,7 @@ async fn main() {
     };
 
     for r in data.iter().map(|v| IncludeInfo::of(v, &mapper)) {
-        trace!("GOT: {:?}", r);
+        debug!("GOT: {:?}", r);
     }
 
     info!("Done {} files", data.len());
@@ -309,7 +432,7 @@ async fn main() {
     {
         Ok(items) => {
             for target in items.iter() {
-                trace!("  {:#?}", target);
+                debug!("  {:#?}", target);
             }
             info!("Found {} gn targets", items.len());
         }
