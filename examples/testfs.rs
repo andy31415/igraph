@@ -132,6 +132,7 @@ enum MapInstruction {
 #[derive(Debug)]
 struct GraphInstructions {
     map_instructions: Vec<MapInstruction>,
+    zoom_items: Vec<String>,
 }
 
 impl GraphInstructions {
@@ -188,6 +189,28 @@ fn parse_map_instructions(input: &str) -> IResult<&str, Vec<MapInstruction>> {
     .parse(input)
 }
 
+fn parse_zoom(input: &str) -> IResult<&str, Vec<String>> {
+    separated_list0(
+        parse_whitespace,
+        parse_until_whitespace
+            .map(String::from)
+            .preceded_by(opt(parse_until_whitespace)),
+    )
+    .preceded_by(tuple((
+        opt(parse_whitespace),
+        tag("zoom"),
+        parse_whitespace,
+        tag("{"),
+        opt(parse_whitespace),
+    )))
+    .terminated(tuple((
+        opt(parse_whitespace),
+        tag("}"),
+        opt(parse_whitespace),
+    )))
+    .parse(input)
+}
+
 fn parse_graph<'a>(
     input: &'a str,
     variables: &'_ HashMap<String, String>,
@@ -202,7 +225,7 @@ fn parse_graph<'a>(
     //     - group-instructions
     //     - zoom-list (NOT instructions)
 
-    tuple((parse_map_instructions,))
+    tuple((parse_map_instructions, opt(parse_zoom)))
         .preceded_by(tuple((
             opt(parse_whitespace),
             tag("graph"),
@@ -215,7 +238,13 @@ fn parse_graph<'a>(
             tag("}"),
             opt(parse_whitespace),
         )))
-        .map(|(map_instructions,)| GraphInstructions { map_instructions }.mapped(variables))
+        .map(|(map_instructions, zoom)| {
+            GraphInstructions {
+                map_instructions,
+                zoom_items: zoom.unwrap_or_default(),
+            }
+            .mapped(variables)
+        })
         .parse(input)
 
     // graph {

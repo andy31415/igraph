@@ -49,8 +49,8 @@ graph {
    #    group_source_header
    # }
 
-   # zoom {
-   #   test_group
-   #   //src/app
-   # }
+   zoom {
+     test_group
+     //src/app
+   }
 }
