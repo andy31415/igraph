@@ -6,7 +6,7 @@ use std::{
 use serde::Serialize;
 use tera::{Context, Tera, Value};
 use tokio::io::{AsyncWrite, AsyncWriteExt, BufWriter};
-use tracing::{debug, error, warn};
+use tracing::{debug, error};
 
 use super::{error::Error, gn::GnTarget, path_mapper::PathMapping};
 
@@ -70,7 +70,7 @@ impl Graph {
         tera.register_filter(
             "link_target",
             |n: &Value, _: &HashMap<String, Value>| -> tera::Result<Value> {
-                let m = match n {
+                let _m = match n {
                     Value::Object(o) => o,
                     _ => return Ok(Value::Null),
                 };
@@ -91,7 +91,7 @@ impl Graph {
             .write(
                 tera.render(
                     "dot_template",
-                    &Context::from_serialize(&self).map_err(Error::RenderError)?,
+                    &Context::from_serialize(self).map_err(Error::RenderError)?,
                 )
                 .map_err(Error::RenderError)?
                 .to_string()

@@ -1,5 +1,3 @@
-
-
 use camino::Utf8PathBuf;
 use clap::Parser;
 use igraph::dependencies::configfile::parse_config_file;

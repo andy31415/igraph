@@ -11,7 +11,7 @@ pub enum Error {
         path: PathBuf,
         message: &'static str,
     },
-    
+
     #[error("I/O error: {}", message)]
     AsyncIOError {
         #[source]

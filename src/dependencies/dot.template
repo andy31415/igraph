@@ -1,0 +1,11 @@
+digraph "include-graph {
+  graph [rankdir=LR]
+
+{% for id, group in groups %}
+  "{{id}}" [label="{{group.name}}"];
+{% endfor %}
+
+{% for link in links %}
+   "{{ link.from | link_target }}" -> "{{link.to | link_target }}"
+{% endfor %}
+}
