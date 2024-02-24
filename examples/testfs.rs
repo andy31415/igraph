@@ -6,7 +6,7 @@ use igraph::igraph::{
 };
 use nom::{
     branch::alt,
-    bytes::complete::{is_not, tag_no_case, take_until},
+    bytes::complete::{is_not, tag_no_case},
     character::complete::{char as parsed_char, multispace1},
     combinator::{opt, value},
     multi::{many0, many1, separated_list0},
@@ -116,7 +116,11 @@ fn parse_input(input: &str) -> IResult<&str, Vec<InputCommand>> {
             opt(parse_whitespace),
         )),
         separated_list0(parse_whitespace, parse_input_command),
-        tuple((opt(parse_whitespace), tag_no_case("}"), opt(parse_whitespace))),
+        tuple((
+            opt(parse_whitespace),
+            tag_no_case("}"),
+            opt(parse_whitespace),
+        )),
     ))
     .map(|(_, l, _)| l)
     .parse(input)
@@ -246,7 +250,7 @@ fn parse_graph<'a>(
             .mapped(variables)
         })
         .parse(input)
-    
+
     // graph {
     //    map {
     //      ${CHIP_ROOT}/src/app => app::
@@ -279,7 +283,11 @@ async fn parse_data(input: &str) -> IResult<&str, ()> {
     // First, parse all variables
     let (input, input_vars) = separated_list0(
         parse_whitespace,
-        separated_pair(parse_variable_name, tag_no_case("="), parse_until_whitespace),
+        separated_pair(
+            parse_variable_name,
+            tag_no_case("="),
+            parse_until_whitespace,
+        ),
     )
     .parse(input)?;
 
