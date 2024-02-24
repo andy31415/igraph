@@ -220,6 +220,17 @@ impl GraphBuilder {
 
         let mut new_groups = Vec::new();
 
+        let mut zoom_colors = [
+            "powderblue",
+            "peachpuff",
+            "thistle",
+            "honeydew",
+            "khaki",
+            "lavender",
+        ]
+        .iter()
+        .cycle();
+
         for (id, group) in self
             .graph
             .groups
@@ -228,7 +239,11 @@ impl GraphBuilder {
         {
             let new_id = format!("z{}", id);
             link_map.insert(id.clone(), new_id.clone());
-            new_groups.push((new_id, group.zoomed(&mut link_map)));
+            new_groups.push((new_id, {
+                let mut z = group.zoomed(&mut link_map);
+                z.color = zoom_colors.next().expect("infinite").to_string();
+                z
+            }));
         }
         // zoom changed now
         self.graph.zoomed = new_groups.iter().map(|(id, _)| id.clone()).collect();

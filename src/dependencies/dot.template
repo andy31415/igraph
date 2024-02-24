@@ -1,6 +1,5 @@
 digraph include_graph {
-  rankdir=BT;
-  compound=true;
+  rankdir=LR;
   node [shape=rectangle, style=filled, fontname="monospace"]
 
 {% for id, group in groups %}
