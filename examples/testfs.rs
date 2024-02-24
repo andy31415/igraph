@@ -128,7 +128,7 @@ fn parse_input(input: &str) -> IResult<&str, Vec<InputCommand>> {
 
 /// Defines an instruction regarding name mapping
 #[derive(Debug)]
-enum MapInstruction {
+pub enum MapInstruction {
     DisplayMap { from: String, to: String },
     Keep(String),
 }
