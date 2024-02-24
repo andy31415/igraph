@@ -104,11 +104,20 @@ impl GraphBuilder {
                 }
             };
 
+            let node_id = uuid::Uuid::now_v6(&[0, 0, 0, 0, 0, g.nodes.len() as u8]).to_string();
             g.nodes.insert(MappedNode {
-                id: uuid::Uuid::now_v6(&[0, 0, 0, 0, 0, g.nodes.len() as u8]).to_string(),
-                path,
+                id: node_id.clone(),
+                path: path.clone(),
                 display_name: m.to.clone(),
             });
+
+            self.placement_maps.insert(
+                path,
+                GraphLink {
+                    group_id: group_id.clone(),
+                    node_id: Some(node_id),
+                },
+            );
         }
 
         self.group_name_to_id
