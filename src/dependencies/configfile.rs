@@ -67,7 +67,7 @@ fn parse_until_whitespace(input: &str) -> IResult<&str, &str> {
     is_not("#\n\r \t").parse(input)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 enum InputCommand {
     IncludesFromCompileDb(String),
     IncludeDirectory(String),
@@ -97,14 +97,6 @@ fn parse_input_command(input: &str) -> IResult<&str, InputCommand> {
 }
 
 fn parse_input(input: &str) -> IResult<&str, Vec<InputCommand>> {
-    // input {
-    //   includes from compiledb ${COMPILE_ROOT}/compile_commands.json
-    //   include_dir ${GEN_ROOT}
-
-    //   # Only API will be loaded anyway
-    //   glob ${CHIP_ROOT}/src/app/**
-    //   glob ${GEN_ROOT}/**
-    // }
     tuple((
         tuple((
             tag_no_case("input"),
@@ -542,6 +534,47 @@ mod tests {
         );
 
         assert!(parse_zoom("blah").is_err());
+    }
+
+    #[test]
+    fn test_parse_input() {
+        assert_eq!(
+            parse_input(
+                "input {
+           includes from compiledb some_compile_db.json
+           include_dir foo
+           
+           glob xyz/**/*
+
+           include_dir bar
+           includes from compiledb another.json
+            
+           glob final/**/*
+           glob blah/**/*
+        }"
+            ),
+            Ok((
+                "",
+                vec![
+                    InputCommand::IncludesFromCompileDb("some_compile_db.json".into()),
+                    InputCommand::IncludeDirectory("foo".into()),
+                    InputCommand::Glob("xyz/**/*".into()),
+                    InputCommand::IncludeDirectory("bar".into()),
+                    InputCommand::IncludesFromCompileDb("another.json".into()),
+                    InputCommand::Glob("final/**/*".into()),
+                    InputCommand::Glob("blah/**/*".into()),
+                ]
+            ))
+        );
+
+        // input {
+        //   includes from compiledb ${COMPILE_ROOT}/compile_commands.json
+        //   include_dir ${GEN_ROOT}
+
+        //   # Only API will be loaded anyway
+        //   glob ${CHIP_ROOT}/src/app/**
+        //   glob ${GEN_ROOT}/**
+        // }
     }
 
     #[test]
