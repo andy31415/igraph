@@ -28,6 +28,8 @@ graph {
       
       keep app::
       keep zapgen::
+
+      drop app::clusters/
    }
    
    group {

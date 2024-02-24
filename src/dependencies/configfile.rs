@@ -125,6 +125,7 @@ fn parse_input(input: &str) -> IResult<&str, Vec<InputCommand>> {
 pub enum MapInstruction {
     DisplayMap { from: String, to: String },
     Keep(String),
+    Drop(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -202,6 +203,13 @@ fn parse_map_instructions(input: &str) -> IResult<&str, Vec<MapInstruction>> {
                     parse_whitespace,
                 )))
                 .map(|s| MapInstruction::Keep(s.into())),
+            parse_until_whitespace
+                .preceded_by(tuple((
+                    opt(parse_whitespace),
+                    tag_no_case("drop"),
+                    parse_whitespace,
+                )))
+                .map(|s| MapInstruction::Drop(s.into())),
         ))
         .terminated(parse_whitespace),
     )
@@ -458,6 +466,15 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
         })
         .collect::<HashSet<_>>();
 
+    let drop = instructions
+        .map_instructions
+        .iter()
+        .filter_map(|i| match i {
+            MapInstruction::Drop(v) => Some(v),
+            _ => None,
+        })
+        .collect::<HashSet<_>>();
+
     // Dependency data is prunned based on instructions
     let mut g = GraphBuilder::new(
         dependency_data
@@ -470,7 +487,9 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
                     to,
                 })
             })
-            .filter(|m| keep.iter().any(|prefix| m.to.starts_with(*prefix))),
+            .filter(|m| keep.iter().any(|prefix| m.to.starts_with(*prefix)))
+            .filter(|m| drop.iter().all(|prefix| !m.to.starts_with(*prefix)))
+            ,
     );
 
     // define all the groups
