@@ -124,13 +124,13 @@ fn parse_input(input: &str) -> IResult<&str, Vec<InputCommand>> {
 }
 
 /// Defines an instruction regarding name mapping
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum MapInstruction {
     DisplayMap { from: String, to: String },
     Keep(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum GroupInstruction {
     GroupSourceHeader,
     GroupFromGn {
@@ -446,6 +446,28 @@ mod tests {
         assert_eq!(parse_comment("#abc\r\nhello"), Ok(("\r\nhello", "abc")));
         assert!(parse_comment("not a comment").is_err());
         assert!(parse_comment("comment later # like here").is_err());
+    }
+
+    #[test]
+    fn test_manual_group() {
+        assert_eq!(
+            parse_manual_group(
+                "
+            manual some/name::special {
+                file1
+                file2
+                another/file::test
+            }
+            "
+            ),
+            Ok((
+                "",
+                GroupInstruction::ManualGroup {
+                    name: "some/name::special".into(),
+                    items: vec!["file1".into(), "file2".into(), "another/file::test".into(),]
+                }
+            ))
+        );
     }
 
     #[test]
