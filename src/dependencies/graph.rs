@@ -6,7 +6,7 @@ use std::{
 use serde::Serialize;
 use tera::{Context, Tera};
 use tokio::io::{AsyncWrite, AsyncWriteExt, BufWriter};
-use tracing::{debug, error, warn};
+use tracing::{debug, error};
 
 use super::{error::Error, gn::GnTarget, path_mapper::PathMapping};
 
