@@ -1,17 +1,59 @@
 digraph include_graph {
   rankdir=LR;
   compound=true;
+  node [shape=rectangle, style=filled, fontname="monospace"]
 
 {% for id, group in groups %}
-  {{id}} [
-    label="{{group.name}}"
-    shape=rectangle 
-    style=filled
-    fillcolor="{{group.color}}"
-  ]
+  {%- if group.zoomed %}
+  subgraph cluster_{{id}} {
+    label="{{group.name}}";
+    color="{{group.color}}";
+    style=filled;
+    
+  {%- for node in group.nodes %}
+    {{node.id}} [label="{{node.display_name}}", fillcolor="white"]
+  {%- endfor %}
+  {% for link in links %}
+    {%- if link.from.group_id == id and link.to.group_id == id %}
+    {{link.from.node_id}} -> {{link.to.node_id}};
+    {%- endif -%}
+  {% endfor %}
+  }
+  {%- else %}
+  {{id}} [ 
+    label=
+    {%- set cnt = group.nodes | length -%}
+    {% if cnt > 1 %}
+    <
+      <TABLE BORDER="0">
+        <TR><TD COLSPAN="2" BGCOLOR="yellow" ALIGN="left">{{group.name}}</TD></TR>
+      {%- for node in group.nodes %}
+        {%- if loop.index > 8 %}
+        <TR><TD WIDTH="20"></TD><TD ALIGN="right">... ({{group.nodes | length}} total items)</TD></TR>
+        {%- endif -%}
+        {%- if loop.index > 8 %}
+          {% break %}
+        {%- endif -%}
+        <TR><TD WIDTH="20"></TD><TD ALIGN="left">{{node.display_name}}</TD></TR>
+      {% endfor %}
+      </TABLE>
+   >
+   {% else %}
+   "
+   {%- set node = group.nodes | first %}
+   {{node.display_name}}
+   ",
+   {% endif %}
+   fillcolor="{{group.color}}" ];
+  {%- endif -%}
 {% endfor %}
 
 {% for link in links %}
-   {{ link.from | link_target }} -> {{link.to | link_target }}
-{% endfor %}
+   {%- if not link.from.group_id or link.from.group_id != link.to.group_id %}
+   {% if link.from.node_id %} {{ link.from.node_id }} {% else %} {{link.from.group_id}} {% endif -%}
+   ->
+   {%- if link.to.node_id %} {{ link.to.node_id }} {% else %} {{link.to.group_id}} {% endif -%}
+   ;
+   {%- endif %}
+{%- endfor %}
 }

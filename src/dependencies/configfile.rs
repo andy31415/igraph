@@ -488,8 +488,7 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
                 })
             })
             .filter(|m| keep.iter().any(|prefix| m.to.starts_with(*prefix)))
-            .filter(|m| drop.iter().all(|prefix| !m.to.starts_with(*prefix)))
-            ,
+            .filter(|m| drop.iter().all(|prefix| !m.to.starts_with(*prefix))),
     );
 
     // define all the groups

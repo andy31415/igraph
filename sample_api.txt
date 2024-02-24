@@ -25,13 +25,15 @@ graph {
    map {
       ${CHIP_ROOT}/src/app => app::
       ${GEN_ROOT} => zapgen::
-      
+
       keep app::
       keep zapgen::
 
       drop app::clusters/
+      drop app::server/java/
+      drop app::tests/
    }
-   
+
    group {
       # Load all the specified targets for grouping
       # Group logic:
@@ -39,16 +41,14 @@ graph {
       #   - first group wins (a file belongs to one group only)
       gn root ${COMPILE_ROOT} target //src/app/* sources ${CHIP_ROOT}
 
-      
       # manually defined group
-      # manual test_group {
-      #   # Grouping is done by mapped names
-      #   app::TestMissing.h
-
-      #   app::EventLoggingTypes.h
-      #   app::InteractionModelHelper.h
-      #   app::MessageDef/Builder.h
-      # }
+       manual content-app-files {
+         # Grouping is done by mapped names
+         app::app-platform/ContentApp.h
+         app::app-platform/ContentApp.cpp
+         app::app-platform/ContentAppPlatform.h
+         app::app-platform/ContentAppPlatform.cpp
+      }
 
        # groups together h and cpp files
        # IFF they do not already belong to some other group
@@ -56,7 +56,7 @@ graph {
    }
 
    zoom {
-     # //src/app:app
+     //src/app:app
+     # content-app-files
    }
-
 }

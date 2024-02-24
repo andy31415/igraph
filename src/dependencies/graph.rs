@@ -4,9 +4,9 @@ use std::{
 };
 
 use serde::Serialize;
-use tera::{Context, Tera, Value};
+use tera::{Context, Tera};
 use tokio::io::{AsyncWrite, AsyncWriteExt, BufWriter};
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 use super::{error::Error, gn::GnTarget, path_mapper::PathMapping};
 
@@ -82,26 +82,6 @@ impl Graph {
         let mut tera = Tera::default();
         tera.add_raw_template("dot_template", include_str!("dot.template"))
             .map_err(Error::RenderError)?;
-
-        tera.register_filter(
-            "link_target",
-            |n: &Value, _: &HashMap<String, Value>| -> tera::Result<Value> {
-                let _m = match n {
-                    Value::Object(o) => o,
-                    _ => return Ok(Value::Null),
-                };
-                let g = n.get("group_id").expect("Must have group id");
-                let n = n.get("node_id").expect("Must have group id");
-
-                match (g, n) {
-                    (Value::String(group), Value::String(node)) => {
-                        Ok(Value::String(format!("{}.{}", group, node)))
-                    }
-                    (Value::String(group), Value::Null) => Ok(Value::String(group.clone())),
-                    _ => Ok(Value::Null),
-                }
-            },
-        );
 
         writer
             .write(
@@ -334,6 +314,11 @@ impl GraphBuilder {
                     node_id: Some(node_id),
                 },
             );
+        }
+
+        if g.nodes.is_empty() {
+            error!("Group {:?} is empty. Will not create.", group_name);
+            return;
         }
 
         self.group_name_to_id

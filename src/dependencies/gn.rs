@@ -93,5 +93,6 @@ pub async fn load_gn_targets(
                     .collect(),
             })
         })
+        .filter(|t| !t.sources.is_empty())
         .collect())
 }
