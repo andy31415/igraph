@@ -230,7 +230,7 @@ impl GraphBuilder {
             .collect::<Vec<_>>();
 
         if !no_link_nodes.is_empty() {
-            self.define_group("NO DEPENDENCIES", "gray85", no_link_nodes);
+            self.define_group("NO DEPENDENCIES OR GROUPS", "gray85", no_link_nodes);
         }
 
         // figure out zoomed items;

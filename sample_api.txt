@@ -23,6 +23,7 @@ input {
     # Only SRC/HDR will be loaded anyway, so glob **/* is ok
     # Loading sources from compiledb may be more accurate SOMETIMES
     glob ${CHIP_ROOT}/src/app/**/*
+    glob ${CHIP_ROOT}/src/app/*
     glob ${ZAPGEN_ROOT}/**/*
     glob ${CODEGEN_ROOT}/**/*
     # glob ${CHIP_ROOT}/zzz_generated/app-common/app-common/**/*
