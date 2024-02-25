@@ -2,7 +2,10 @@ digraph include_graph {
   rankdir=LR;
   node [shape=rectangle, style=filled, fontname="monospace"]
 
-  subgraph a_zoomed {
+  subgraph cluster_a_zoomed {
+    label="Zoomed-in items";
+    graph[style=dotted];
+
 {% for id, group in groups %}
   {%- if zoomed is containing(id) %}
   subgraph cluster_{{id}} {
@@ -18,7 +21,8 @@ digraph include_graph {
 {%- endfor %}
   }
 
-  subgraph b_regular {
+  subgraph cluster_b_regular {
+    graph[style=dotted];
 {%- for id, group in groups %}
   {%- if not zoomed is containing(id) %}
   {{id}} [ 
