@@ -219,6 +219,21 @@ impl GraphBuilder {
 
     // final consumption of self to build the graph
     pub fn build(mut self) -> Graph {
+        // Group all items without links
+        let known_placement = self.placement_maps.keys().collect::<HashSet<_>>();
+
+        // create a single group of all node-ids that have no links ... to see stand-alone items
+        let no_link_nodes = self
+            .path_maps
+            .keys()
+            .filter(|k| !known_placement.contains(*k)).cloned()
+            .collect::<Vec<_>>();
+
+        if !no_link_nodes.is_empty() {
+            self.define_group("NO DEPENDENCIES", "gray85", no_link_nodes);
+        }
+
+        // figure out zoomed items;
         let mut link_map = HashMap::new();
 
         let mut new_groups = Vec::new();

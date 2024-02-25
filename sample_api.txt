@@ -18,14 +18,14 @@ input {
     
     # you can also load source file paths from compile databases
     # this is a separate step from include paths
-    sources from compiledb ${COMPILE_ROOT}/compile_commands.json
+    # sources from compiledb ${COMPILE_ROOT}/compile_commands.json
 
     # Only SRC/HDR will be loaded anyway, so glob **/* is ok
     # Loading sources from compiledb may be more accurate SOMETIMES
     glob ${CHIP_ROOT}/src/app/**/*
     glob ${ZAPGEN_ROOT}/**/*
     glob ${CODEGEN_ROOT}/**/*
-    glob ${CHIP_ROOT}/zzz_generated/app-common/app-common/**/*
+    # glob ${CHIP_ROOT}/zzz_generated/app-common/app-common/**/*
 }
 
 # Options for dependency graphs
@@ -81,17 +81,20 @@ graph {
          app::dynamic_server/AccessControl.h
          app::dynamic_server/DynamicDispatcher.cpp
       }
-
-      manual handler-headers {
-        app::ReadHandler.h
-        app::WriteHandler.h
-        app::CommandHandler.h
+      
+      manual app::util/common.h {
+         app::util/common.h
       }
 
+      # manual handler-headers {
+      #   app::ReadHandler.h
+      #   app::WriteHandler.h
+      #   app::CommandHandler.h
+      # }
 
-       # groups together h and cpp files
-       # IFF they do not already belong to some other group
-       group_source_header
+      # groups together h and cpp files
+      # IFF they do not already belong to some other group
+      group_source_header
    }
 
    zoom {
@@ -100,7 +103,12 @@ graph {
      # //src/app:interaction-model
      # focus: handler-headers
 
-     app::util/privilege-storage
-     zap-gen-access
+     # app::util/privilege-storage
+     # zap-gen-access
+
+     app::util/util
+     app::util/common.h
+     app::util/attribute-storage
+     app::util/attribute-table
    }
 }
