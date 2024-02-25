@@ -142,3 +142,8 @@ The program uses [env_logger](https://docs.rs/env_logger/latest/env_logger/) for
 
 You can set `RUST_LOG` environment variable to control some more verbose loggin. Note that it
 can be very verbose.
+
+### Include processing
+
+Use `RUST_LOG=include-extract=info` to print out all parsed include information
+Use `RUST_LOG=full-file-list=info` to print out all files found by globbing for sources

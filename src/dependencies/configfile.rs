@@ -21,7 +21,7 @@ use std::{
     path::PathBuf,
 };
 
-use tracing::{debug, error};
+use tracing::{debug, error, info};
 
 use super::{error::Error, graph::Graph};
 
@@ -29,6 +29,29 @@ use super::{error::Error, graph::Graph};
 struct DependencyData {
     includes: HashSet<PathBuf>,
     files: Vec<SourceWithIncludes>,
+}
+
+/// Pretty-print dependency data.
+///
+/// Wrapped as a separate struct to support lazy formatting
+struct FullFileList<'a> {
+    dependencies: &'a DependencyData,
+}
+
+impl<'a> FullFileList<'a> {
+    pub fn new(dependencies: &'a DependencyData) -> Self {
+        Self { dependencies }
+    }
+}
+
+impl<'a> std::fmt::Display for FullFileList<'a> {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fmt.write_str("Processed files:\n")?;
+        for f in self.dependencies.files.iter() {
+            fmt.write_fmt(format_args!("  {:?}\n", f.path))?;
+        }
+        Ok(())
+    }
 }
 
 fn expand_variable(value: &str, existing: &HashMap<String, String>) -> String {
@@ -485,6 +508,8 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
             _ => None,
         })
         .collect::<HashSet<_>>();
+
+    info!(target: "full-file-list", "Procesed files: {}", FullFileList::new(&dependency_data));
 
     // Dependency data is prunned based on instructions
     let mut g = GraphBuilder::new(
