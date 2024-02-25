@@ -53,7 +53,7 @@ graph {
          app::app-platform/ContentAppPlatform.h
          app::app-platform/ContentAppPlatform.cpp
       }
-      
+
       manual zap-gen {
          zapgen::zap-generated/endpoint_config.h
          zapgen::zap-generated/gen_config.h
@@ -66,7 +66,7 @@ graph {
       manual zap-gen-clustercommandhandler {
          zapgen::zap-generated/IMClusterCommandHandler.cpp
       }
-      
+
       manual dynamic-server {
          app::dynamic_server/AccessControl.cpp
          app::dynamic_server/AccessControl.h
@@ -87,8 +87,11 @@ graph {
 
    zoom {
      # focus: is supported to focus links on those
-     //src/app:app
-     //src/app:interaction-model
-     focus: handler-headers
+     # //src/app:app
+     # //src/app:interaction-model
+     # focus: handler-headers
+
+     app::util/privilege-storage
+     zap-gen-access
    }
 }

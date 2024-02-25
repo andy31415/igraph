@@ -11,7 +11,7 @@ use tokio::{
     io::{AsyncBufReadExt as _, BufReader},
     task::JoinSet,
 };
-use tracing::{error, trace};
+use tracing::{error, info, trace};
 
 /// Attempt to make the full path of head::tail
 /// returns None if that fails (e.g. path does not exist)
@@ -102,6 +102,9 @@ pub async fn extract_includes(
             }
         }
     }
+
+    info!(target: "include-extract",
+          "Includes for {:?}: {:#?}", path, result);
 
     Ok(result)
 }
