@@ -6,7 +6,7 @@ use std::{
 use serde::Serialize;
 use tera::{Context, Tera};
 use tokio::io::{AsyncWrite, AsyncWriteExt, BufWriter};
-use tracing::{debug, error, warn};
+use tracing::{debug, error};
 
 use super::{error::Error, gn::GnTarget, path_mapper::PathMapping};
 
@@ -252,16 +252,6 @@ impl GraphBuilder {
         self.graph.zoomed = new_groups.iter().map(|(id, _)| id.clone()).collect();
         self.graph.groups.extend(new_groups);
 
-        /*
-        self.focus_zoomed = self
-            .focus_zoomed
-            .into_iter()
-            .filter_map(|id| link_map.get(&id).map(|r| r.clone()))
-            .collect();
-        */
-
-        error!("ZOOM FOCUS ON: {:?}", self.focus_zoomed);
-
         let zoom_links = self
             .graph
             .links
@@ -280,8 +270,8 @@ impl GraphBuilder {
 
                 let l = l.try_remap(&link_map);
                 if l.is_none() {
-                    warn!("FAILED TO REMAP: {:?}", l);
-                };
+                    error!("FAILED TO REMAP: {:?}", l);
+                }
                 l
             })
             .collect::<HashSet<_>>();

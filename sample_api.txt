@@ -16,10 +16,9 @@ input {
     include_dir ${CODEGEN_ROOT}
 
     # Only API will be loaded anyway
-    glob bad_glob_here
     glob ${CHIP_ROOT}/src/app/**/*
     glob ${ZAPGEN_ROOT}/**/*
-    glob ${CODEGEN_ROOT}/*
+    glob ${CODEGEN_ROOT}/**/*
 }
 
 # Options for dependency graphs
