@@ -394,7 +394,10 @@ impl GraphBuilder {
             let m = match self.path_maps.get(path) {
                 Some(m) => m,
                 None => {
-                    error!("{:?} is missing a mapping", path);
+                    // Generally this means someone created a `manual group` however source file was not
+                    // loaded, for example loading sources from compile_database but not all files are compiled
+                    // by this build run
+                    error!("{:?} is a source file without a map entry. Cannot add to group (is this a loaded source file?).", path);
                     continue;
                 }
             };

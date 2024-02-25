@@ -60,6 +60,15 @@ input {
     # You may also manually include single directories
     include_dir ${SOURCE_ROOT}/includes/test
     include_dir /third/party/lib
+    
+    # Sources can be loaded directly from a compile database
+    # for more coverage
+    #
+    # NOTE:
+    #   this will include ONLY paths in the current target, and
+    #   targets sometimes do not build all fines in a directory.
+    #   Use glob for full coverage
+    sources from compiledb ${COMPILE_ROOT}/compile_commands.json
 
     # Globs are generally including all files. program filters
     # out based on extensions (h, hpp, c, cpp, cxx, cc)

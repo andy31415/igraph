@@ -1,6 +1,6 @@
 use crate::dependencies::{
     compiledb::parse_compile_database,
-    cparse::{all_sources_and_includes, SourceWithIncludes},
+    cparse::{all_sources_and_includes, extract_includes, SourceWithIncludes},
     gn::load_gn_targets,
     graph::GraphBuilder,
     path_mapper::{PathMapper, PathMapping},
@@ -78,8 +78,8 @@ fn expand_variable(value: &str, existing: &HashMap<String, String>) -> String {
 }
 
 fn parse_comment(input: &str) -> IResult<&str, &str> {
-    pair(parsed_char('#'), is_not("\n\r"))
-        .map(|(_, r)| r)
+    pair(parsed_char('#'), opt(is_not("\n\r")))
+        .map(|(_, r)| r.unwrap_or_default())
         .parse(input)
 }
 
@@ -98,6 +98,7 @@ fn parse_until_whitespace(input: &str) -> IResult<&str, &str> {
 #[derive(Debug, PartialEq, Clone)]
 enum InputCommand {
     IncludesFromCompileDb(String),
+    SourcesFromCompileDb(String),
     IncludeDirectory(String),
     Glob(String),
 }
@@ -114,6 +115,16 @@ fn parse_input_command(input: &str) -> IResult<&str, InputCommand> {
                 parse_whitespace,
             )))
             .map(|s| InputCommand::IncludesFromCompileDb(s.into())),
+        parse_until_whitespace
+            .preceded_by(tuple((
+                tag_no_case("sources"),
+                parse_whitespace,
+                tag_no_case("from"),
+                parse_whitespace,
+                tag_no_case("compiledb"),
+                parse_whitespace,
+            )))
+            .map(|s| InputCommand::SourcesFromCompileDb(s.into())),
         parse_until_whitespace
             .preceded_by(tuple((tag_no_case("glob"), parse_whitespace)))
             .map(|s| InputCommand::Glob(s.into())),
@@ -439,6 +450,36 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
                     }
                 }
             }
+            InputCommand::SourcesFromCompileDb(cdb) => {
+                match parse_compile_database(&expand_variable(&cdb, &variables)).await {
+                    Ok(entries) => {
+                        let includes_array = dependency_data
+                            .includes
+                            .clone()
+                            .into_iter()
+                            .collect::<Vec<_>>();
+                        for entry in entries {
+                            match extract_includes(&entry.file_path, &includes_array).await {
+                                Ok(includes) => {
+                                    dependency_data.files.push(SourceWithIncludes {
+                                        path: entry.file_path,
+                                        includes,
+                                    });
+                                }
+                                Err(e) => {
+                                    error!(
+                                        "Includee extraction for {:?} failed: {:?}",
+                                        &entry.file_path, e
+                                    );
+                                }
+                            };
+                        }
+                    }
+                    Err(err) => {
+                        error!("Error parsing compile database {}: {:?}", cdb, err);
+                    }
+                }
+            }
             InputCommand::IncludeDirectory(path) => {
                 dependency_data
                     .includes
@@ -745,6 +786,7 @@ mod tests {
                 "input {
            includes from compiledb some_compile_db.json
            include_dir foo
+           sources from compiledb some_compile_db.json
            
            glob xyz/**/*
 
@@ -760,6 +802,7 @@ mod tests {
                 vec![
                     InputCommand::IncludesFromCompileDb("some_compile_db.json".into()),
                     InputCommand::IncludeDirectory("foo".into()),
+                    InputCommand::SourcesFromCompileDb("some_compile_db.json".into()),
                     InputCommand::Glob("xyz/**/*".into()),
                     InputCommand::IncludeDirectory("bar".into()),
                     InputCommand::IncludesFromCompileDb("another.json".into()),

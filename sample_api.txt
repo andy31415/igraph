@@ -12,15 +12,20 @@ CODEGEN_ROOT=${COMPILE_ROOT}/gen/third_party/connectedhomeip/examples/all-cluste
 # globbing inputs will use any previously defined includes
 input {
     includes from compiledb ${COMPILE_ROOT}/compile_commands.json
+
     include_dir ${ZAPGEN_ROOT}
     include_dir ${CODEGEN_ROOT}
+    
+    # you can also load source file paths from compile databases
+    # this is a separate step from include paths
+    sources from compiledb ${COMPILE_ROOT}/compile_commands.json
 
-    # Only API will be loaded anyway
+    # Only SRC/HDR will be loaded anyway, so glob **/* is ok
+    # Loading sources from compiledb may be more accurate SOMETIMES
     glob ${CHIP_ROOT}/src/app/**/*
     glob ${ZAPGEN_ROOT}/**/*
     glob ${CODEGEN_ROOT}/**/*
     glob ${CHIP_ROOT}/zzz_generated/app-common/app-common/**/*
- 
 }
 
 # Options for dependency graphs
