@@ -104,7 +104,7 @@ pub async fn extract_includes(
     }
 
     info!(target: "include-extract",
-          "Includes for {:?}: {:#?}", path, result);
+          "Includes for:\n  {:?}: {:#?}", path, result);
 
     Ok(result)
 }
