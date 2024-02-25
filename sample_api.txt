@@ -19,6 +19,8 @@ input {
     glob ${CHIP_ROOT}/src/app/**/*
     glob ${ZAPGEN_ROOT}/**/*
     glob ${CODEGEN_ROOT}/**/*
+    glob ${CHIP_ROOT}/zzz_generated/app-common/app-common/**/*
+ 
 }
 
 # Options for dependency graphs
@@ -28,10 +30,12 @@ graph {
       ${CHIP_ROOT}/src/app => app::
       ${ZAPGEN_ROOT} => zapgen::
       ${CODEGEN_ROOT} => codegen::
+      ${CHIP_ROOT}/zzz_generated/app-common => app-common::
 
       keep app::
       keep zapgen::
       keep codegen::
+      keep app-common::
 
       drop app::clusters/
       drop app::server/java/

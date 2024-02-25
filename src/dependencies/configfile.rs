@@ -458,7 +458,12 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
                     .into_iter()
                     .collect::<Vec<_>>();
                 match all_sources_and_includes(glob, &includes_array).await {
-                    Ok(data) => dependency_data.files.extend(data),
+                    Ok(data) => {
+                        if data.is_empty() {
+                            error!("GLOB {:?} resulted in EMPTY file list!", g);
+                        }
+                        dependency_data.files.extend(data)
+                    }
                     Err(e) => {
                         error!("Include prodcessing for {} failed: {:?}", g, e);
                         continue;
