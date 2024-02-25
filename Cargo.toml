@@ -5,10 +5,8 @@ edition = "2021"
 authors = ["Andrei Litvin"]
 
 [lib]
-crate-type = ["cdylib", "rlib"]
-
-[[example]]
-name = "testfs"
+path="src/lib.rs"
+crate-type = ["lib"]
 
 [dependencies]
 tokio = { version = "1", features = ["full"]}
