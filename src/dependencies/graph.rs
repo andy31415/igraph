@@ -226,7 +226,8 @@ impl GraphBuilder {
         let no_link_nodes = self
             .path_maps
             .keys()
-            .filter(|k| !known_placement.contains(*k)).cloned()
+            .filter(|k| !known_placement.contains(*k))
+            .cloned()
             .collect::<Vec<_>>();
 
         if !no_link_nodes.is_empty() {
