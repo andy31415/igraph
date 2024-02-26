@@ -5,13 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
- 1.0.1 (2024-02-26)
+ 1.0.2 (2024-02-26)
 
 # Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 4 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -22,8 +22,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Bump to version 0.2 for coloring ([`428804f`](https://github.com/andy31415/igraph/commit/428804fc4b8e591f1c7cb9b4ad5ac7402ad3ff43))
+    - Adjusting changelogs prior to release of include-graph v1.0.1 ([`17a1ad5`](https://github.com/andy31415/igraph/commit/17a1ad58dd3818d9f330cd82911449a1a62876f0))
     - Adjusting changelogs prior to release of include-graph v1.0.1 ([`03d741c`](https://github.com/andy31415/igraph/commit/03d741cf0cdef1d06709a9597bb69d1168865a9b))
     - Update links to color in/out include links for focused includes ([`74518a4`](https://github.com/andy31415/igraph/commit/74518a456689718ec6002c6e9a291b37a5f0d221))
+</details>
+
+ 1.0.1 (2024-02-26)
+
+# Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 8 commits contributed to the release.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+# Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release include-graph v1.0.1 ([`b947975`](https://github.com/andy31415/igraph/commit/b9479750f2ddac7478c3dde5b51870689924bf4e))
+    - Adjusting changelogs prior to release of include-graph v1.0.1 ([`539d35a`](https://github.com/andy31415/igraph/commit/539d35ad64316d3af9baafc40ad1a186ce8cf696))
+    - Adjusting changelogs prior to release of include-graph v1.0.1 ([`c9f203b`](https://github.com/andy31415/igraph/commit/c9f203b7ab1fc727904293d688cb8d473c162c36))
+    - Fix up lock ([`ec28225`](https://github.com/andy31415/igraph/commit/ec2822502698db170741f0711a3a6b0d3b8cc088))
+    - Bump patch version to fix up documentation ([`52f7ac9`](https://github.com/andy31415/igraph/commit/52f7ac919d0610b3fef942e9391b5a32a85bfa1b))
+    - Release include-graph v1.0.0 ([`41b2c77`](https://github.com/andy31415/igraph/commit/41b2c77a9d6c6f8159a73ba54e8bf4aa162980b6))
+    - Release include-graph v1.0.0 ([`027b1b3`](https://github.com/andy31415/igraph/commit/027b1b385a1d985d0b1ed6e4d9e7de1231ecf7d0))
+    - Fix up the name of the binary ([`7d56042`](https://github.com/andy31415/igraph/commit/7d56042d84b0bba9d0443b7d9a9d0ff3cab387ca))
 </details>
 
  1.0.0 (2024-02-26)
