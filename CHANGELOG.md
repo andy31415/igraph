@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 6 commits contributed to the release.
+ - 1 commit contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -22,12 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
-    - Adjusting changelogs prior to release of include-graph v1.0.1 ([`c9f203b`](https://github.com/andy31415/igraph/commit/c9f203b7ab1fc727904293d688cb8d473c162c36))
-    - Fix up lock ([`ec28225`](https://github.com/andy31415/igraph/commit/ec2822502698db170741f0711a3a6b0d3b8cc088))
-    - Bump patch version to fix up documentation ([`52f7ac9`](https://github.com/andy31415/igraph/commit/52f7ac919d0610b3fef942e9391b5a32a85bfa1b))
-    - Release include-graph v1.0.0 ([`41b2c77`](https://github.com/andy31415/igraph/commit/41b2c77a9d6c6f8159a73ba54e8bf4aa162980b6))
-    - Release include-graph v1.0.0 ([`027b1b3`](https://github.com/andy31415/igraph/commit/027b1b385a1d985d0b1ed6e4d9e7de1231ecf7d0))
-    - Fix up the name of the binary ([`7d56042`](https://github.com/andy31415/igraph/commit/7d56042d84b0bba9d0443b7d9a9d0ff3cab387ca))
+    - Update links to color in/out include links for focused includes ([`74518a4`](https://github.com/andy31415/igraph/commit/74518a456689718ec6002c6e9a291b37a5f0d221))
 </details>
 
  1.0.0 (2024-02-26)
