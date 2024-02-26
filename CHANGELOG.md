@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 1 commit contributed to the release.
+ - 2 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Adjusting changelogs prior to release of include-graph v1.0.1 ([`03d741c`](https://github.com/andy31415/igraph/commit/03d741cf0cdef1d06709a9597bb69d1168865a9b))
     - Update links to color in/out include links for focused includes ([`74518a4`](https://github.com/andy31415/igraph/commit/74518a456689718ec6002c6e9a291b37a5f0d221))
 </details>
 
