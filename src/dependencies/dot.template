@@ -23,6 +23,7 @@ digraph include_graph {
 
   subgraph cluster_b_regular {
     graph[style=dotted];
+
 {%- for id, group in groups %}
   {%- if not zoomed is containing(id) %}
   {{id}} [ 

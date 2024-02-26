@@ -1,8 +1,14 @@
 [package]
-name = "igraph"
+name = "include-graph"
 version = "0.9.0"
 edition = "2021"
 authors = ["Andrei Litvin"]
+description = "Generates dot graph descriptions of c/c++ include dependencies."
+repository = "https://github.com/andy31415/igraph"
+readme = "README.md"
+documentation = "README.md"
+keywords = ["cli", "graph"]
+license-file = "LICENSE"
 
 [lib]
 path="src/lib.rs"
