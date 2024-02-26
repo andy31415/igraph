@@ -173,6 +173,7 @@ pub enum GroupInstruction {
     },
     ManualGroup {
         name: String,
+        color: Option<String>,
         items: Vec<String>,
     },
 }
@@ -333,21 +334,29 @@ fn parse_gn_target(input: &str) -> IResult<&str, GroupInstruction> {
 
 fn parse_manual_group(input: &str) -> IResult<&str, GroupInstruction> {
     tuple((
-        parse_until_whitespace
-            .preceded_by(tuple((
+        tuple((
+            parse_until_whitespace,
+            opt(parse_until_whitespace.preceded_by(tuple((
+                parse_whitespace,
+                tag_no_case("color"),
                 opt(parse_whitespace),
-                tag_no_case("manual"),
-                opt(parse_whitespace),
-            )))
-            .terminated(tuple((opt(parse_whitespace), tag_no_case("{")))),
+            )))),
+        ))
+        .preceded_by(tuple((
+            opt(parse_whitespace),
+            tag_no_case("manual"),
+            opt(parse_whitespace),
+        )))
+        .terminated(tuple((opt(parse_whitespace), tag_no_case("{")))),
         many0(
             is_not("\n\r \t#}")
                 .preceded_by(opt(parse_whitespace))
                 .map(String::from),
         ),
     ))
-    .map(|(name, items)| GroupInstruction::ManualGroup {
+    .map(|((name, color), items)| GroupInstruction::ManualGroup {
         name: name.into(),
+        color: color.map(|c| c.into()),
         items,
     })
     .terminated(tuple((
@@ -693,12 +702,12 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
                 Ok(targets) => g.add_groups_from_gn(targets, ignore_targets),
                 Err(e) => error!("Failed to load GN targets: {:?}", e),
             },
-            GroupInstruction::ManualGroup { name, items } => {
+            GroupInstruction::ManualGroup { name, color, items } => {
                 // items here are mapped, so we have to invert the map to get
                 // the actual name...
                 g.define_group(
                     &name,
-                    "orange",
+                    color.as_deref().unwrap_or("orange"),
                     items.into_iter().filter_map(|n| mapper.try_invert(&n)),
                 );
             }
@@ -828,6 +837,27 @@ mod tests {
                 "",
                 GroupInstruction::ManualGroup {
                     name: "some/name::special".into(),
+                    color: None,
+                    items: vec!["file1".into(), "file2".into(), "another/file::test".into(),]
+                }
+            ))
+        );
+
+        assert_eq!(
+            parse_manual_group(
+                "
+            manual some/name::special color red {
+                file1
+                file2
+                another/file::test
+            }
+            "
+            ),
+            Ok((
+                "",
+                GroupInstruction::ManualGroup {
+                    name: "some/name::special".into(),
+                    color: Some("red".into()),
                     items: vec!["file1".into(), "file2".into(), "another/file::test".into(),]
                 }
             ))

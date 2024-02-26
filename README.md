@@ -118,11 +118,17 @@ graph {
          first::platform/Src.cpp
          first::Something.cc
        }
+
+      # Manual groups may have an optional color
+      manual group-name-here color lightblue {
+        # Grouping is done by mapped names
+        first::some/other_header.h
+      }
       
-       # Optional instructions to ensure headers and sources
-       # are grouped together (as they are generally included in
-       # the same compilation unit)
-       group_source_header
+      # Optional instructions to ensure headers and sources
+      # are grouped together (as they are generally included in
+      # the same compilation unit)
+      group_source_header
    }
 
    # If zoom is non-empty it generates a separate area
