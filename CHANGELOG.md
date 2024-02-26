@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
- Unreleased
+ 1.0.0 (2024-02-26)
 
 * initial release
 * supports dot graph generation
@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 119 commits contributed to the release over the course of 16 calendar days.
+ - 120 commits contributed to the release over the course of 16 calendar days.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Another update with changelog list ([`5eaf8a1`](https://github.com/andy31415/igraph/commit/5eaf8a164c7aaeecfd10e12f58689b7d6049baad))
     - Move things around in readme ([`ccd5ff3`](https://github.com/andy31415/igraph/commit/ccd5ff3c31338acdfa50be57025b38627d3b227b))
     - Re-format release ([`9884ce0`](https://github.com/andy31415/igraph/commit/9884ce0028a44ee4ca6199724cb75b12c620d40e))
     - Adjusting changelogs prior to release of include-graph v1.0.0 ([`7841be3`](https://github.com/andy31415/igraph/commit/7841be3936f611f0eac06ec4baf2ffd38a24f8d7))
