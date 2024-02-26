@@ -101,6 +101,7 @@ impl LinkNode {
 pub struct GraphLink {
     pub from: LinkNode,
     pub to: LinkNode,
+    pub color: Option<String>, // specific color for a link
 }
 
 impl GraphLink {
@@ -108,6 +109,7 @@ impl GraphLink {
         Some(Self {
             from: self.from.try_remap(m)?,
             to: self.to.try_remap(m)?,
+            color: None,
         })
     }
 }
@@ -284,11 +286,23 @@ impl GraphBuilder {
                     return None;
                 }
 
-                let l = l.try_remap(&link_map);
-                if l.is_none() {
-                    error!("FAILED TO REMAP: {:?}", l);
+                let mut link = match l.try_remap(&link_map) {
+                    Some(value) => value,
+                    None => {
+                        error!("FAILED TO REMAP: {:?}", l);
+                        return None;
+                    }
+                };
+
+                if l.from.group_id != l.to.group_id {
+                    if self.focus_zoomed.contains(&l.to.group_id) {
+                        link.color = Some("maroon".into());
+                    } else if self.focus_zoomed.contains(&l.from.group_id) {
+                        link.color = Some("darkblue".into());
+                    }
                 }
-                l
+
+                Some(link)
             })
             .collect::<HashSet<_>>();
 
@@ -300,6 +314,7 @@ impl GraphBuilder {
             .map(|l| GraphLink {
                 from: l.from.without_node(),
                 to: l.to.without_node(),
+                color: None,
             })
             .filter(|l| l.from != l.to)
             .collect::<HashSet<_>>();
@@ -355,7 +370,11 @@ impl GraphBuilder {
             return;
         }
 
-        self.graph.links.insert(GraphLink { from, to });
+        self.graph.links.insert(GraphLink {
+            from,
+            to,
+            color: None,
+        });
     }
 
     pub fn add_groups_from_gn(&mut self, gn_groups: Vec<GnTarget>) {
