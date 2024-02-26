@@ -160,4 +160,4 @@ Use `RUST_LOG=full-file-list=info` to print out all files found by globbing for 
 ## Releasing
 
 Use [cargo-smart-release](https://crates.io/crates/cargo-smart-release) via
-`cargo install cargo-smart-release`
+`cargo install cargo-smart-release` and then `cargo smart-release`, `cargo smart-release --execute`
