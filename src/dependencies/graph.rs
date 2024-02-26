@@ -369,7 +369,7 @@ impl GraphBuilder {
             .map(|l| GraphLink {
                 from: l.from.without_node(),
                 to: l.to.without_node(),
-                color: None,
+                color: l.color.clone(),
             })
             .filter(|l| l.from != l.to)
             .collect::<HashSet<_>>();

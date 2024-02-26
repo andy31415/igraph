@@ -95,12 +95,11 @@ graph {
       group_source_header
    }
    
-   # you can optionall provide instructions for edge coloring
+   # you can optionally provide instructions for edge coloring
    color edges {
      from some_group_name red
      to other_group_name blue
    }
-
 
    # If zoom is non-empty it generates a separate area
    # with the specified "groups" expanded and viewing individual
