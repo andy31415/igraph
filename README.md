@@ -156,3 +156,8 @@ can be very verbose.
 
 Use `RUST_LOG=include-extract=info` to print out all parsed include information
 Use `RUST_LOG=full-file-list=info` to print out all files found by globbing for sources
+
+## Releasing
+
+Use [cargo-smart-release](https://crates.io/crates/cargo-smart-release) via
+`cargo install cargo-smart-release`
