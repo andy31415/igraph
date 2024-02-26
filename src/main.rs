@@ -1,6 +1,6 @@
 use camino::Utf8PathBuf;
 use clap::Parser;
-use igraph::dependencies::configfile::parse_config_file;
+use include_graph::dependencies::configfile::parse_config_file;
 
 use tokio::{
     fs::File,
