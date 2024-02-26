@@ -17,7 +17,7 @@ The intent is to visualize dependencies among files.
 
 This is a standard rust binary:
 
-- `cargo build --release` will generate an output in `target/release/igraph`
+- `cargo build --release` will generate an output in `target/release/include-graph`
 - `cargo run -- <args-here>` can be used to run in-place (and debug)
 - `cargo test` or `cargo nextest run` will execute some the integrated unit tests (increasing
   test coverage is still a work in progress)
@@ -27,14 +27,14 @@ This is a standard rust binary:
 ```sh
 # Simple run using a configuration database
 # if no `output` is provided, the output will go to standard out
-igraph -c configfile.txt -o outfile.dot
+include-graph -c configfile.txt -o outfile.dot
 
 # You should generate the graph using graphviz/dot
 # For example for the above `outfile.dot`:
 dot -T svg -o outfile.svg outfile.dot
 
 # If you install watchexec, you can setup a pipeline like:
-watchexec -e txt -- "igraph -c cfg.txt -o out.dot && dot -Tsvg -o out.svg out.dot"
+watchexec -e txt -- "include-graph -c cfg.txt -o out.dot && dot -Tsvg -o out.svg out.dot"
 ```
 
 ## Configuration file format
