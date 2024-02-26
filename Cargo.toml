@@ -6,7 +6,6 @@ authors = ["Andrei Litvin"]
 description = "Generates dot graph descriptions of c/c++ include dependencies."
 repository = "https://github.com/andy31415/igraph"
 readme = "README.md"
-documentation = "README.md"
 keywords = ["cli", "graph"]
 license-file = "LICENSE"
 
