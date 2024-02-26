@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 120 commits contributed to the release over the course of 16 calendar days.
+ - 122 commits contributed to the release over the course of 16 calendar days.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Drop documentation field from cargo.toml ... seemns broken ([`2991627`](https://github.com/andy31415/igraph/commit/2991627eb1ebbdac4057f878e6ccd8dc421f538a))
+    - Release include-graph v1.0.0 ([`8914737`](https://github.com/andy31415/igraph/commit/891473736186c036b716a215df7b28acf43190b5))
     - Another update with changelog list ([`5eaf8a1`](https://github.com/andy31415/igraph/commit/5eaf8a164c7aaeecfd10e12f58689b7d6049baad))
     - Move things around in readme ([`ccd5ff3`](https://github.com/andy31415/igraph/commit/ccd5ff3c31338acdfa50be57025b38627d3b227b))
     - Re-format release ([`9884ce0`](https://github.com/andy31415/igraph/commit/9884ce0028a44ee4ca6199724cb75b12c620d40e))
