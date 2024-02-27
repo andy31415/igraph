@@ -5,7 +5,7 @@ use std::{
 
 use serde::Deserialize;
 use tokio::process::Command;
-use tracing::{error, warn};
+use tracing::error;
 
 use super::error::Error;
 
@@ -56,10 +56,18 @@ pub async fn load_gn_targets(
 
     if !output.status.success() {
         let data = String::from_utf8_lossy(&output.stdout);
-        error!("GN STDOUT: {:?}", data);
+        if data.len() > 0 {
+            for l in data.lines() {
+                error!("STDOUT: {}", l);
+            }
+        }
 
         let data = String::from_utf8_lossy(&output.stderr);
-        error!("GN STDOUT: {:?}", data);
+        if data.len() > 0 {
+            for l in data.lines() {
+                error!("STDERR: {}", l);
+            }
+        }
 
         return Err(Error::Internal {
             message: format!("Failed to execute GN. Status {:?}.", output.status),

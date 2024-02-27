@@ -67,6 +67,10 @@ graph {
       #    system paths
       gn root ${OUTPUT_ROOT} target //src/app/* sources ${SOURCE_ROOT}
 
+      # If you have a `.gn` that loads some pre-defined arguments, you may
+      # need to specify a "rundir" to specify where to run from
+      gn root ${OUTPUT_ROOT} rundir ${SOURCE_ROOT}/example/path target //src/app/* sources ${SOURCE_ROOT}
+
       # Groups can be manually defined to group some files
       manual group-name-here {
          # Grouping is done by mapped names
