@@ -5,13 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
- 1.0.2 (2024-02-26)
+ 1.0.4 (2024-02-27)
 
 # Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 4 commits contributed to the release.
+ - 6 commits contributed to the release.
+ - 1 day passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -22,6 +23,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Update version to 1.0.4 ([`63ac655`](https://github.com/andy31415/igraph/commit/63ac6556e12df4fc15e09aa232cdf8dec2683b70))
+    - Remove wrong documentation ([`7ee6fed`](https://github.com/andy31415/igraph/commit/7ee6fedfb991e8b3010fce1829fd63a6aecdd8b4))
+    - Revert "Add support for gn run directory to support .gn and args.gni" ([`23967e2`](https://github.com/andy31415/igraph/commit/23967e2ddb3b03f579c5c56e61f58dc7242078a0))
+    - Add support for gn run directory to support .gn and args.gni ([`10ada7e`](https://github.com/andy31415/igraph/commit/10ada7edc41962376a8ce7d3c024ab5a16a896c0))
+    - Better formatting - this is now readable ([`8a5bf72`](https://github.com/andy31415/igraph/commit/8a5bf72a8b1486fa6c9c13b4ea922cdb81be13f1))
+    - Default environment level is ERROR, so make gn errors output as errors ([`51b2168`](https://github.com/andy31415/igraph/commit/51b2168e8ccc94785a14ee534bba04d0205de2b2))
+</details>
+
+ 1.0.2 (2024-02-26)
+
+# Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 6 commits contributed to the release.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+# Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release include-graph v1.0.2 ([`752e3a4`](https://github.com/andy31415/igraph/commit/752e3a4ec22eb1b594d7178425e2e2fb4f5de2e2))
+    - Adjusting changelogs prior to release of include-graph v1.0.2 ([`fc84729`](https://github.com/andy31415/igraph/commit/fc84729271b5f8daa0f579bb5bf3b3e6cb8a81f9))
     - Bump to version 0.2 for coloring ([`428804f`](https://github.com/andy31415/igraph/commit/428804fc4b8e591f1c7cb9b4ad5ac7402ad3ff43))
     - Adjusting changelogs prior to release of include-graph v1.0.1 ([`17a1ad5`](https://github.com/andy31415/igraph/commit/17a1ad58dd3818d9f330cd82911449a1a62876f0))
     - Adjusting changelogs prior to release of include-graph v1.0.1 ([`03d741c`](https://github.com/andy31415/igraph/commit/03d741cf0cdef1d06709a9597bb69d1168865a9b))
