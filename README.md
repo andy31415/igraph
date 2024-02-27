@@ -155,7 +155,10 @@ can be very verbose.
 ### Include processing
 
 Use `RUST_LOG=include-extract=info` to print out all parsed include information
+
 Use `RUST_LOG=full-file-list=info` to print out all files found by globbing for sources
+
+Use `RUST_LOG=gn-path=info` to print out all files found by globbing for sources
 
 ## Releasing
 

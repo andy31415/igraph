@@ -5,7 +5,7 @@ use std::{
 
 use serde::Deserialize;
 use tokio::process::Command;
-use tracing::error;
+use tracing::{error, info};
 
 use super::error::Error;
 
@@ -85,18 +85,24 @@ pub async fn load_gn_targets(
         .inner
         .into_iter()
         .filter_map(|(name, sources)| {
+            info!(target: "gn-path", "Sources for {}", &name);
             sources.sources.map(|sources| GnTarget {
                 name,
                 sources: sources
                     .into_iter()
                     .map(|s| {
-                        let mut path = PathBuf::from(source_root);
-                        // NOTE: we RELY that paths start with '//'
-                        if !s.starts_with("//") {
-                            error!("PATH: {:?} DOES NOT start with '//' as expected", s);
+                        if s.starts_with("//") {
+                            // paths starting with // are relative to the source root
+                            let mut path = PathBuf::from(source_root);
+                            path.push(PathBuf::from(&s.as_str()[2..]));
+                            path
+                        } else {
+                            // otherwise assume absolute and use as-is
+                            PathBuf::from(&s.as_str())
                         }
-                        path.push(PathBuf::from(&s.as_str()[2..]));
-                        path
+                    })
+                    .inspect(|path| {
+                        info!(target: "gn-path", " - {:?}", path);
                     })
                     .collect(),
             })
