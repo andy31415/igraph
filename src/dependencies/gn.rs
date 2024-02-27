@@ -56,10 +56,10 @@ pub async fn load_gn_targets(
 
     if !output.status.success() {
         let data = String::from_utf8_lossy(&output.stdout);
-        warn!("GN STDOUT: {:?}", data);
+        error!("GN STDOUT: {:?}", data);
 
         let data = String::from_utf8_lossy(&output.stderr);
-        warn!("GN STDOUT: {:?}", data);
+        error!("GN STDOUT: {:?}", data);
 
         return Err(Error::Internal {
             message: format!("Failed to execute GN. Status {:?}.", output.status),
