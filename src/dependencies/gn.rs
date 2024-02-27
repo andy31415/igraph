@@ -30,7 +30,6 @@ pub async fn load_gn_targets(
     gn_dir: &Path,
     source_root: &Path,
     target: &str,
-    rundir: &Option<String>,
 ) -> Result<Vec<GnTarget>, Error> {
     // TODO: GN PATH?
     let mut command = Command::new("/usr/bin/gn");
@@ -50,10 +49,6 @@ pub async fn load_gn_targets(
     })?);
     command.arg(target);
     command.arg("sources");
-
-    if let Some(d) = rundir {
-        command.current_dir(d);
-    }
 
     let output = command.output().await.map_err(|e| Error::Internal {
         message: format!("Canonical path: {:?}", e),
