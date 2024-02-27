@@ -90,7 +90,7 @@ pub async fn load_gn_targets(
                 name,
                 sources: sources
                     .into_iter()
-                    .map(|s| {
+                    .filter_map(|s| {
                         if s.starts_with("//") {
                             // paths starting with // are relative to the source root
                             let mut path = PathBuf::from(source_root);
@@ -99,7 +99,7 @@ pub async fn load_gn_targets(
                         } else {
                             // otherwise assume absolute and use as-is
                             PathBuf::from(&s.as_str())
-                        }
+                        }.canonicalize().ok()
                     })
                     .inspect(|path| {
                         info!(target: "gn-path", " - {:?}", path);

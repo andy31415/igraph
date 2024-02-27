@@ -130,7 +130,9 @@ where
 
     for entry in paths {
         let path = match entry {
-            Ok(value) => value,
+            Ok(value) => value.canonicalize().map_err(|e| Error::Internal {
+                message: format!("{:?}", e),
+            })?,
             Err(e) => {
                 return Err(Error::Internal {
                     message: format!("{:?}", e),
