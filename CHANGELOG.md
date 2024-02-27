@@ -5,13 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
- 1.0.6 (2024-02-27)
+ 1.0.7 (2024-02-27)
 
 # Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 10 commits contributed to the release.
+ - 12 commits contributed to the release.
  - 1 day passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Add support to ignore some GN targets due to duplication or other reasons ([`a1a01a2`](https://github.com/andy31415/igraph/commit/a1a01a2706b7f3286a73a1a0563f6ad2a0602219))
+    - Adjusting changelogs prior to release of include-graph v1.0.6 ([`21df8e0`](https://github.com/andy31415/igraph/commit/21df8e0b933d9478c239f9b84e6c0725c6e9dde3))
     - Much more canonicalize on paths to remove intermediate symlinks ... works much better with CHIP ([`69a04a1`](https://github.com/andy31415/igraph/commit/69a04a1cda143f3407f76ee7bd81300973830876))
     - Adjusting changelogs prior to release of include-graph v1.0.5 ([`cb92a7b`](https://github.com/andy31415/igraph/commit/cb92a7b96194ebd8326821915551da4c310aeebf))
     - New version: have some debug for gn, support gn full paths ([`518d07e`](https://github.com/andy31415/igraph/commit/518d07e80d23d4e4c21a1c5e17fe980b7f206a30))
@@ -34,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Better formatting - this is now readable ([`8a5bf72`](https://github.com/andy31415/igraph/commit/8a5bf72a8b1486fa6c9c13b4ea922cdb81be13f1))
     - Default environment level is ERROR, so make gn errors output as errors ([`51b2168`](https://github.com/andy31415/igraph/commit/51b2168e8ccc94785a14ee534bba04d0205de2b2))
 </details>
+
+ 1.0.6 (2024-02-27)
 
  1.0.5 (2024-02-27)
 
