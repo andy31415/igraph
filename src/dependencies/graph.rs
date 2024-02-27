@@ -377,8 +377,15 @@ impl GraphBuilder {
         });
     }
 
-    pub fn add_groups_from_gn(&mut self, gn_groups: Vec<GnTarget>) {
-        for target in gn_groups {
+    pub fn add_groups_from_gn(
+        &mut self,
+        gn_groups: Vec<GnTarget>,
+        ignore_targets: HashSet<String>,
+    ) {
+        for target in gn_groups
+            .into_iter()
+            .filter(|g| !ignore_targets.contains(&g.name))
+        {
             let items = target
                 .sources
                 .into_iter()

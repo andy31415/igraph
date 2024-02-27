@@ -67,6 +67,14 @@ graph {
       #    system paths
       gn root ${OUTPUT_ROOT} target //src/app/* sources ${SOURCE_ROOT}
 
+      # Sometimes GN targets may include the same file several times
+      # in that case you may choose to ignore some targets
+      gn root ${OUTPUT_ROOT} target //src/app/* sources ${SOURCE_ROOT} ignore targets {
+         //gn/taget1
+         //gn/taget2:name
+         //gn/taget3:other-name
+      }
+
       # Groups can be manually defined to group some files
       manual group-name-here {
          # Grouping is done by mapped names

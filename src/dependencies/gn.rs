@@ -99,7 +99,9 @@ pub async fn load_gn_targets(
                         } else {
                             // otherwise assume absolute and use as-is
                             PathBuf::from(&s.as_str())
-                        }.canonicalize().ok()
+                        }
+                        .canonicalize()
+                        .ok()
                     })
                     .inspect(|path| {
                         info!(target: "gn-path", " - {:?}", path);

@@ -169,6 +169,7 @@ pub enum GroupInstruction {
         gn_root: String,
         target: String,
         source_root: String,
+        ignore_targets: HashSet<String>,
     },
     ManualGroup {
         name: String,
@@ -211,10 +212,12 @@ impl GraphInstructions {
                         gn_root,
                         target,
                         source_root,
+                        ignore_targets,
                     } => GroupInstruction::GroupFromGn {
                         gn_root: expand_variable(&gn_root, variables),
                         target,
                         source_root: expand_variable(&source_root, variables),
+                        ignore_targets,
                     },
                     other => other,
                 })
@@ -267,6 +270,53 @@ fn parse_map_instructions(input: &str) -> IResult<&str, Vec<MapInstruction>> {
     .parse(input)
 }
 
+fn parse_gn_target(input: &str) -> IResult<&str, GroupInstruction> {
+    tuple((
+        parse_until_whitespace.preceded_by(tuple((
+            tag_no_case("gn"),
+            parse_whitespace,
+            tag_no_case("root"),
+            parse_whitespace,
+        ))),
+        parse_until_whitespace.preceded_by(tuple((
+            parse_whitespace,
+            tag_no_case("target"),
+            parse_whitespace,
+        ))),
+        parse_until_whitespace.preceded_by(tuple((
+            parse_whitespace,
+            tag_no_case("sources"),
+            parse_whitespace,
+        ))),
+        opt(parse_target_list
+            .preceded_by(tuple((
+                parse_whitespace,
+                tag_no_case("ignore"),
+                parse_whitespace,
+                tag_no_case("targets"),
+                opt(parse_whitespace),
+                tag_no_case("{"),
+            )))
+            .terminated(tuple((
+                opt(parse_whitespace),
+                tag_no_case("}"),
+                opt(parse_whitespace),
+            )))),
+    ))
+    .terminated(opt(parse_whitespace))
+    .map(
+        |(gn_root, target, source_root, ignore_targets)| GroupInstruction::GroupFromGn {
+            gn_root: gn_root.into(),
+            target: target.into(),
+            source_root: source_root.into(),
+            ignore_targets: ignore_targets
+                .map(|v| v.into_iter().map(|s| s.into()).collect())
+                .unwrap_or_default(),
+        },
+    )
+    .parse(input)
+}
+
 fn parse_manual_group(input: &str) -> IResult<&str, GroupInstruction> {
     tuple((
         parse_until_whitespace
@@ -294,38 +344,19 @@ fn parse_manual_group(input: &str) -> IResult<&str, GroupInstruction> {
     .parse(input)
 }
 
+fn parse_target_list(input: &str) -> IResult<&str, Vec<&str>> {
+    many0(is_not("\n\r \t#}").preceded_by(opt(parse_whitespace)))
+        .terminated(opt(parse_whitespace))
+        .parse(input)
+}
+
 fn parse_group(input: &str) -> IResult<&str, Vec<GroupInstruction>> {
     many0(alt((
         value(
             GroupInstruction::GroupSourceHeader,
             tag_no_case("group_source_header"),
         ),
-        tuple((
-            parse_until_whitespace.preceded_by(tuple((
-                tag_no_case("gn"),
-                parse_whitespace,
-                tag_no_case("root"),
-                parse_whitespace,
-            ))),
-            parse_until_whitespace.preceded_by(tuple((
-                parse_whitespace,
-                tag_no_case("target"),
-                parse_whitespace,
-            ))),
-            parse_until_whitespace.preceded_by(tuple((
-                parse_whitespace,
-                tag_no_case("sources"),
-                parse_whitespace,
-            ))),
-        ))
-        .terminated(opt(parse_whitespace))
-        .map(
-            |(gn_root, target, source_root)| GroupInstruction::GroupFromGn {
-                gn_root: gn_root.into(),
-                target: target.into(),
-                source_root: source_root.into(),
-            },
-        ),
+        parse_gn_target,
         parse_manual_group,
     )))
     .preceded_by(tuple((
@@ -583,6 +614,7 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
                 gn_root,
                 target,
                 source_root,
+                ignore_targets,
             } => match load_gn_targets(
                 &PathBuf::from(gn_root),
                 &PathBuf::from(source_root),
@@ -590,7 +622,7 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
             )
             .await
             {
-                Ok(targets) => g.add_groups_from_gn(targets),
+                Ok(targets) => g.add_groups_from_gn(targets, ignore_targets),
                 Err(e) => error!("Failed to load GN targets: {:?}", e),
             },
             GroupInstruction::ManualGroup { name, items } => {
@@ -639,6 +671,73 @@ mod tests {
     }
 
     #[test]
+    fn test_gn_target() {
+        assert_eq!(
+            parse_gn_target("gn root test1 target //my/target/* sources srcs1"),
+            Ok((
+                "",
+                GroupInstruction::GroupFromGn {
+                    gn_root: "test1".into(),
+                    target: "//my/target/*".into(),
+                    source_root: "srcs1".into(),
+                    ignore_targets: HashSet::new(),
+                },
+            ))
+        );
+
+        assert_eq!(
+            parse_gn_target("gn root test1 target //my/target/* sources srcs1 ignore targets {}"),
+            Ok((
+                "",
+                GroupInstruction::GroupFromGn {
+                    gn_root: "test1".into(),
+                    target: "//my/target/*".into(),
+                    source_root: "srcs1".into(),
+                    ignore_targets: HashSet::new(),
+                },
+            ))
+        );
+
+        assert_eq!(
+            parse_gn_target(
+                "gn root test1 target //my/target/* sources srcs1 ignore targets{
+            }"
+            ),
+            Ok((
+                "",
+                GroupInstruction::GroupFromGn {
+                    gn_root: "test1".into(),
+                    target: "//my/target/*".into(),
+                    source_root: "srcs1".into(),
+                    ignore_targets: HashSet::new(),
+                },
+            ))
+        );
+
+        assert_eq!(
+            parse_gn_target(
+                "gn root test1 target //my/target/* sources srcs1 ignore targets{
+                a b
+                c
+                d
+            }"
+            ),
+            Ok((
+                "",
+                GroupInstruction::GroupFromGn {
+                    gn_root: "test1".into(),
+                    target: "//my/target/*".into(),
+                    source_root: "srcs1".into(),
+                    ignore_targets: vec!["a", "b", "c", "d"]
+                        .into_iter()
+                        .map(String::from)
+                        .collect(),
+                },
+            ))
+        );
+    }
+
+    #[test]
     fn test_manual_group() {
         assert_eq!(
             parse_manual_group(
@@ -674,7 +773,10 @@ mod tests {
    
               group {
                 gn root test1 target //my/target/* sources srcs1
-                gn root test/${Foo}/blah target //* sources ${Foo}
+                gn root test/${Foo}/blah target //* sources ${Foo} ignore targets {
+                    //ignore1
+                    //ignore:other
+                }
               }
         }
         ",
@@ -688,12 +790,19 @@ mod tests {
                         GroupInstruction::GroupFromGn {
                             gn_root: "test1".into(),
                             target: "//my/target/*".into(),
-                            source_root: "srcs1".into()
+                            source_root: "srcs1".into(),
+                            ignore_targets: HashSet::new(),
                         },
                         GroupInstruction::GroupFromGn {
                             gn_root: "test/Bar/blah".into(),
                             target: "//*".into(),
-                            source_root: "Bar".into()
+                            source_root: "Bar".into(),
+                            ignore_targets: {
+                                let mut h = HashSet::new();
+                                h.insert("//ignore1".into());
+                                h.insert("//ignore:other".into());
+                                h
+                            }
                         },
                     ],
                     zoom_items: Vec::default(),
@@ -777,6 +886,20 @@ mod tests {
         );
 
         assert!(parse_zoom("blah").is_err());
+    }
+
+    #[test]
+    fn test_parse_target_list() {
+        assert_eq!(parse_target_list(""), Ok(("", vec![])));
+        assert_eq!(parse_target_list("    "), Ok(("", vec![])));
+        assert_eq!(parse_target_list("a b c"), Ok(("", vec!["a", "b", "c"])));
+        assert_eq!(
+            parse_target_list("  a  \n\n   b\n   c\n\n"),
+            Ok(("", vec!["a", "b", "c"]))
+        );
+        // should not consume the ending brace
+        assert_eq!(parse_target_list("}"), Ok(("}", vec![])));
+        assert_eq!(parse_target_list("a b c }"), Ok(("}", vec!["a", "b", "c"])));
     }
 
     #[test]
