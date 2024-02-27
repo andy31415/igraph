@@ -169,6 +169,7 @@ pub enum GroupInstruction {
         gn_root: String,
         target: String,
         source_root: String,
+        rundir: Option<String>,
     },
     ManualGroup {
         name: String,
@@ -211,10 +212,12 @@ impl GraphInstructions {
                         gn_root,
                         target,
                         source_root,
+                        rundir,
                     } => GroupInstruction::GroupFromGn {
                         gn_root: expand_variable(&gn_root, variables),
                         target,
                         source_root: expand_variable(&source_root, variables),
+                        rundir: rundir.map(|s| expand_variable(&s, variables)),
                     },
                     other => other,
                 })
@@ -307,6 +310,11 @@ fn parse_group(input: &str) -> IResult<&str, Vec<GroupInstruction>> {
                 tag_no_case("root"),
                 parse_whitespace,
             ))),
+            opt(parse_until_whitespace.preceded_by(tuple((
+                parse_whitespace,
+                tag_no_case("rundir"),
+                parse_whitespace,
+            )))),
             parse_until_whitespace.preceded_by(tuple((
                 parse_whitespace,
                 tag_no_case("target"),
@@ -320,10 +328,11 @@ fn parse_group(input: &str) -> IResult<&str, Vec<GroupInstruction>> {
         ))
         .terminated(opt(parse_whitespace))
         .map(
-            |(gn_root, target, source_root)| GroupInstruction::GroupFromGn {
+            |(gn_root, rundir, target, source_root)| GroupInstruction::GroupFromGn {
                 gn_root: gn_root.into(),
                 target: target.into(),
                 source_root: source_root.into(),
+                rundir: rundir.map(|d| d.into()),
             },
         ),
         parse_manual_group,
@@ -583,10 +592,12 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
                 gn_root,
                 target,
                 source_root,
+                rundir,
             } => match load_gn_targets(
                 &PathBuf::from(gn_root),
                 &PathBuf::from(source_root),
                 &target,
+                &rundir,
             )
             .await
             {
@@ -675,6 +686,7 @@ mod tests {
               group {
                 gn root test1 target //my/target/* sources srcs1
                 gn root test/${Foo}/blah target //* sources ${Foo}
+                gn root foo/bar rundir ${Foo}/run/dir target //* sources ${Foo}
               }
         }
         ",
@@ -688,12 +700,20 @@ mod tests {
                         GroupInstruction::GroupFromGn {
                             gn_root: "test1".into(),
                             target: "//my/target/*".into(),
-                            source_root: "srcs1".into()
+                            source_root: "srcs1".into(),
+                            rundir: None,
                         },
                         GroupInstruction::GroupFromGn {
                             gn_root: "test/Bar/blah".into(),
                             target: "//*".into(),
-                            source_root: "Bar".into()
+                            source_root: "Bar".into(),
+                            rundir: None,
+                        },
+                        GroupInstruction::GroupFromGn {
+                            gn_root: "foo/bar".into(),
+                            target: "//*".into(),
+                            source_root: "Bar".into(),
+                            rundir: Some("Bar/run/dir".into()),
                         },
                     ],
                     zoom_items: Vec::default(),
