@@ -5,13 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
- 1.0.4 (2024-02-27)
+ 1.0.5 (2024-02-27)
 
 # Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 6 commits contributed to the release.
+ - 8 commits contributed to the release.
  - 1 day passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - New version: have some debug for gn, support gn full paths ([`518d07e`](https://github.com/andy31415/igraph/commit/518d07e80d23d4e4c21a1c5e17fe980b7f206a30))
+    - Adjusting changelogs prior to release of include-graph v1.0.4 ([`f589edd`](https://github.com/andy31415/igraph/commit/f589edd18c49febea9aab04f2844a4c455715a29))
     - Update version to 1.0.4 ([`63ac655`](https://github.com/andy31415/igraph/commit/63ac6556e12df4fc15e09aa232cdf8dec2683b70))
     - Remove wrong documentation ([`7ee6fed`](https://github.com/andy31415/igraph/commit/7ee6fedfb991e8b3010fce1829fd63a6aecdd8b4))
     - Revert "Add support for gn run directory to support .gn and args.gni" ([`23967e2`](https://github.com/andy31415/igraph/commit/23967e2ddb3b03f579c5c56e61f58dc7242078a0))
@@ -30,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Better formatting - this is now readable ([`8a5bf72`](https://github.com/andy31415/igraph/commit/8a5bf72a8b1486fa6c9c13b4ea922cdb81be13f1))
     - Default environment level is ERROR, so make gn errors output as errors ([`51b2168`](https://github.com/andy31415/igraph/commit/51b2168e8ccc94785a14ee534bba04d0205de2b2))
 </details>
+
+ 1.0.4 (2024-02-27)
 
  1.0.2 (2024-02-26)
 
