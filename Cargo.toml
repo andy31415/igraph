@@ -1,6 +1,6 @@
 [package]
 name = "include-graph"
-version = "1.0.2"
+version = "1.0.4"
 edition = "2021"
 authors = ["Andrei Litvin"]
 description = "Generates dot graph descriptions of c/c++ include dependencies."
