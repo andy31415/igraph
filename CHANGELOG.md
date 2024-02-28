@@ -5,14 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+ 1.0.8 (2024-02-28)
+
+# Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 5 commits contributed to the release.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+# Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Clippy and format ([`26221af`](https://github.com/andy31415/igraph/commit/26221afb7e335e42201ea4f49408029c1e13f306))
+    - Add back coloring of manual groups, add edge coloring capability ([`f4b5997`](https://github.com/andy31415/igraph/commit/f4b59979a223fe009a3346922c96c9c0af8010d8))
+    - Add support for manual group coloring. ([`ef09081`](https://github.com/andy31415/igraph/commit/ef09081b8704dfb7946eecc6a6f3e748a91a6515))
+    - Prepare for edge coloring ([`23a0beb`](https://github.com/andy31415/igraph/commit/23a0beba4fa5d2230857c93ad39b609af2ddd647))
+    - Adjusting changelogs prior to release of include-graph v1.0.7 ([`e555836`](https://github.com/andy31415/igraph/commit/e555836439e655d2d38b516fa2e4bca1c7c3387f))
+</details>
+
  1.0.7 (2024-02-27)
 
 # Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 12 commits contributed to the release.
- - 1 day passed between releases.
+ - 2 commits contributed to the release.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -25,10 +48,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  * **Uncategorized**
     - Add support to ignore some GN targets due to duplication or other reasons ([`a1a01a2`](https://github.com/andy31415/igraph/commit/a1a01a2706b7f3286a73a1a0563f6ad2a0602219))
     - Adjusting changelogs prior to release of include-graph v1.0.6 ([`21df8e0`](https://github.com/andy31415/igraph/commit/21df8e0b933d9478c239f9b84e6c0725c6e9dde3))
+</details>
+
+ 1.0.6 (2024-02-27)
+
+# Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 3 commits contributed to the release.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+# Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
     - Much more canonicalize on paths to remove intermediate symlinks ... works much better with CHIP ([`69a04a1`](https://github.com/andy31415/igraph/commit/69a04a1cda143f3407f76ee7bd81300973830876))
     - Adjusting changelogs prior to release of include-graph v1.0.5 ([`cb92a7b`](https://github.com/andy31415/igraph/commit/cb92a7b96194ebd8326821915551da4c310aeebf))
     - New version: have some debug for gn, support gn full paths ([`518d07e`](https://github.com/andy31415/igraph/commit/518d07e80d23d4e4c21a1c5e17fe980b7f206a30))
+</details>
+
+ 1.0.5 (2024-02-27)
+
+# Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 1 commit contributed to the release.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+# Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
     - Adjusting changelogs prior to release of include-graph v1.0.4 ([`f589edd`](https://github.com/andy31415/igraph/commit/f589edd18c49febea9aab04f2844a4c455715a29))
+</details>
+
+ 1.0.4 (2024-02-27)
+
+# Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 6 commits contributed to the release.
+ - 1 day passed between releases.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+# Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
     - Update version to 1.0.4 ([`63ac655`](https://github.com/andy31415/igraph/commit/63ac6556e12df4fc15e09aa232cdf8dec2683b70))
     - Remove wrong documentation ([`7ee6fed`](https://github.com/andy31415/igraph/commit/7ee6fedfb991e8b3010fce1829fd63a6aecdd8b4))
     - Revert "Add support for gn run directory to support .gn and args.gni" ([`23967e2`](https://github.com/andy31415/igraph/commit/23967e2ddb3b03f579c5c56e61f58dc7242078a0))
@@ -36,12 +117,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Better formatting - this is now readable ([`8a5bf72`](https://github.com/andy31415/igraph/commit/8a5bf72a8b1486fa6c9c13b4ea922cdb81be13f1))
     - Default environment level is ERROR, so make gn errors output as errors ([`51b2168`](https://github.com/andy31415/igraph/commit/51b2168e8ccc94785a14ee534bba04d0205de2b2))
 </details>
-
- 1.0.6 (2024-02-27)
-
- 1.0.5 (2024-02-27)
-
- 1.0.4 (2024-02-27)
 
  1.0.2 (2024-02-26)
 
