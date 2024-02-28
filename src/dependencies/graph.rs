@@ -219,6 +219,61 @@ impl GraphBuilder {
         }
     }
 
+    pub fn color_from(&mut self, group_name: &str, color: &str) {
+        let group_id = match self.group_name_to_id.get(group_name) {
+            Some(id) => id,
+            None => {
+                error!("Group {} does not exist. Cannot color.", group_name);
+                return;
+            }
+        };
+
+        let keys = self
+            .graph
+            .links
+            .iter()
+            .filter(|l| &l.from.group_id == group_id)
+            .filter(|l| l.color.is_none())
+            .map(|k| k.clone())
+            .collect::<Vec<_>>();
+        
+        for k in keys {
+            self.graph.links.remove(&k);
+            self.graph.links.insert(GraphLink {
+                color: Some(color.into()),
+                ..k
+            });
+        }
+
+    }
+
+    pub fn color_to(&mut self, group_name: &str, color: &str) {
+        let group_id = match self.group_name_to_id.get(group_name) {
+            Some(id) => id,
+            None => {
+                error!("Group {} does not exist. Cannot color.", group_name);
+                return;
+            }
+        };
+
+        let keys = self
+            .graph
+            .links
+            .iter()
+            .filter(|l| &l.to.group_id == group_id)
+            .filter(|l| l.color.is_none())
+            .map(|k| k.clone())
+            .collect::<Vec<_>>();
+        
+        for k in keys {
+            self.graph.links.remove(&k);
+            self.graph.links.insert(GraphLink {
+                color: Some(color.into()),
+                ..k
+            });
+        }
+    }
+
     // final consumption of self to build the graph
     pub fn build(mut self) -> Graph {
         // Group all items without links

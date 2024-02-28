@@ -184,9 +184,22 @@ pub struct ZoomItem {
 }
 
 #[derive(Debug, PartialEq)]
+pub enum GroupEdgeEnd {
+    From(String),
+    To(String),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ColorInstruction {
+    end: GroupEdgeEnd,
+    color: String,
+}
+
+#[derive(Debug, PartialEq, Default)]
 struct GraphInstructions {
     map_instructions: Vec<MapInstruction>,
     group_instructions: Vec<GroupInstruction>,
+    color_instructions: Vec<ColorInstruction>,
     zoom_items: Vec<ZoomItem>,
 }
 
@@ -222,6 +235,7 @@ impl GraphInstructions {
                     other => other,
                 })
                 .collect(),
+            color_instructions: self.color_instructions,
             zoom_items: self.zoom_items,
         }
     }
@@ -374,6 +388,52 @@ fn parse_group(input: &str) -> IResult<&str, Vec<GroupInstruction>> {
     .parse(input)
 }
 
+fn parse_color_instructions(input: &str) -> IResult<&str, Vec<ColorInstruction>> {
+    many0(alt((
+        tuple((
+            parse_until_whitespace,
+            parse_until_whitespace.preceded_by(parse_whitespace),
+        ))
+        .preceded_by(tuple((
+            opt(parse_whitespace),
+            tag_no_case("from"),
+            parse_whitespace,
+        )))
+        .map(|(name, color)| ColorInstruction {
+            color: color.into(),
+            end: GroupEdgeEnd::From(name.into()),
+        }),
+        tuple((
+            parse_until_whitespace,
+            parse_until_whitespace.preceded_by(parse_whitespace),
+        ))
+        .preceded_by(tuple((
+            opt(parse_whitespace),
+            tag_no_case("to"),
+            parse_whitespace,
+        )))
+        .map(|(name, color)| ColorInstruction {
+            color: color.into(),
+            end: GroupEdgeEnd::To(name.into()),
+        }),
+    )))
+    .preceded_by(tuple((
+        opt(parse_whitespace),
+        tag_no_case("color"),
+        opt(parse_whitespace),
+        tag_no_case("edges"),
+        opt(parse_whitespace),
+        tag_no_case("{"),
+        opt(parse_whitespace),
+    )))
+    .terminated(tuple((
+        opt(parse_whitespace),
+        tag_no_case("}"),
+        opt(parse_whitespace),
+    )))
+    .parse(input)
+}
+
 fn parse_zoom(input: &str) -> IResult<&str, Vec<ZoomItem>> {
     many0(
         tuple((
@@ -404,28 +464,36 @@ fn parse_graph<'a>(
     input: &'a str,
     variables: &'_ HashMap<String, String>,
 ) -> IResult<&'a str, GraphInstructions> {
-    tuple((parse_map_instructions, parse_group, opt(parse_zoom)))
-        .preceded_by(tuple((
-            opt(parse_whitespace),
-            tag_no_case("graph"),
-            parse_whitespace,
-            tag_no_case("{"),
-            opt(parse_whitespace),
-        )))
-        .terminated(tuple((
-            opt(parse_whitespace),
-            tag_no_case("}"),
-            opt(parse_whitespace),
-        )))
-        .map(|(map_instructions, group_instructions, zoom)| {
+    tuple((
+        parse_map_instructions,
+        parse_group,
+        opt(parse_color_instructions),
+        opt(parse_zoom),
+    ))
+    .preceded_by(tuple((
+        opt(parse_whitespace),
+        tag_no_case("graph"),
+        parse_whitespace,
+        tag_no_case("{"),
+        opt(parse_whitespace),
+    )))
+    .terminated(tuple((
+        opt(parse_whitespace),
+        tag_no_case("}"),
+        opt(parse_whitespace),
+    )))
+    .map(
+        |(map_instructions, group_instructions, color_instructions, zoom)| {
             GraphInstructions {
                 map_instructions,
                 group_instructions,
+                color_instructions: color_instructions.unwrap_or_default(),
                 zoom_items: zoom.unwrap_or_default(),
             }
             .mapped(variables)
-        })
-        .parse(input)
+        },
+    )
+    .parse(input)
 }
 
 pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
@@ -653,6 +721,13 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
             g.add_link(&dep.path, &dest);
         }
     }
+    
+    for i in instructions.color_instructions {
+        match i.end {
+            GroupEdgeEnd::From(name) => g.color_from(&name, &i.color),
+            GroupEdgeEnd::To(name) => g.color_to(&name, &i.color),
+        }
+    };
 
     debug!("Final builder: {:#?}", g);
 
@@ -805,10 +880,86 @@ mod tests {
                             }
                         },
                     ],
-                    zoom_items: Vec::default(),
+                    ..Default::default()
                 }
             ))
         );
+    }
+
+    #[test]
+    fn test_color_instructions_parsing() {
+        assert_eq!(
+            parse_color_instructions("color edges {}"),
+            Ok(("", Vec::default()))
+        );
+        assert_eq!(
+            parse_color_instructions(" #comment\ncolor edges {  \n  }\n#more comments\n   \n"),
+            Ok(("", Vec::default()))
+        );
+
+        assert_eq!(
+            parse_color_instructions(
+                "
+         #comment
+         color edges {
+            from x y
+            to q r
+            from a b
+         }"
+            ),
+            Ok((
+                "",
+                vec![
+                    ColorInstruction {
+                        end: GroupEdgeEnd::From("x".into()),
+                        color: "y".into(),
+                    },
+                    ColorInstruction {
+                        end: GroupEdgeEnd::To("q".into()),
+                        color: "r".into(),
+                    },
+                    ColorInstruction {
+                        end: GroupEdgeEnd::From("a".into()),
+                        color: "b".into(),
+                    },
+                ]
+            ))
+        );
+
+        assert_eq!(
+            parse_zoom(
+                "
+         #comment
+         zoom{
+            normal
+            focus: thisone
+            not this
+         }"
+            ),
+            Ok((
+                "",
+                vec![
+                    ZoomItem {
+                        name: "normal".to_string(),
+                        focused: false
+                    },
+                    ZoomItem {
+                        name: "thisone".to_string(),
+                        focused: true
+                    },
+                    ZoomItem {
+                        name: "not".to_string(),
+                        focused: false
+                    },
+                    ZoomItem {
+                        name: "this".to_string(),
+                        focused: false
+                    },
+                ]
+            ))
+        );
+
+        assert!(parse_zoom("blah").is_err());
     }
 
     #[test]
