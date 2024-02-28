@@ -234,9 +234,9 @@ impl GraphBuilder {
             .iter()
             .filter(|l| &l.from.group_id == group_id)
             .filter(|l| l.color.is_none())
-            .map(|k| k.clone())
+            .cloned()
             .collect::<Vec<_>>();
-        
+
         for k in keys {
             self.graph.links.remove(&k);
             self.graph.links.insert(GraphLink {
@@ -244,7 +244,6 @@ impl GraphBuilder {
                 ..k
             });
         }
-
     }
 
     pub fn color_to(&mut self, group_name: &str, color: &str) {
@@ -262,9 +261,9 @@ impl GraphBuilder {
             .iter()
             .filter(|l| &l.to.group_id == group_id)
             .filter(|l| l.color.is_none())
-            .map(|k| k.clone())
+            .cloned()
             .collect::<Vec<_>>();
-        
+
         for k in keys {
             self.graph.links.remove(&k);
             self.graph.links.insert(GraphLink {

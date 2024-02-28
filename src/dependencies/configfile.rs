@@ -730,13 +730,13 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
             g.add_link(&dep.path, &dest);
         }
     }
-    
+
     for i in instructions.color_instructions {
         match i.end {
             GroupEdgeEnd::From(name) => g.color_from(&name, &i.color),
             GroupEdgeEnd::To(name) => g.color_to(&name, &i.color),
         }
-    };
+    }
 
     debug!("Final builder: {:#?}", g);
 
