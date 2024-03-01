@@ -5,13 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
- 1.0.9 (2024-03-01)
+ 1.1.0 (2024-03-01)
 
 # Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 15 commits contributed to the release over the course of 2 calendar days.
+ - 18 commits contributed to the release over the course of 2 calendar days.
  - 2 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Cargo format ([`89ebe92`](https://github.com/andy31415/igraph/commit/89ebe92ba0534068ce9c82ef0a085a4e74e06416))
+    - Update config for compiledb to make it clearer ([`9f010a1`](https://github.com/andy31415/igraph/commit/9f010a1b676476bf20b2653bfac41c739f9c6acc))
+    - Adjusting changelogs prior to release of include-graph v1.0.9 ([`6f9a138`](https://github.com/andy31415/igraph/commit/6f9a1384d7b29b789cac99948b48ead95d5cc79e))
     - Some doc comments for code to look pretty ([`8bdc874`](https://github.com/andy31415/igraph/commit/8bdc8749acd7fdf481ba4f70beaa892963412b0a))
     - Much more maintainable expansion logic ([`59dba49`](https://github.com/andy31415/igraph/commit/59dba491832b8776c9105bd29b48cc075bc13e48))
     - Move things around a bit ([`59a031f`](https://github.com/andy31415/igraph/commit/59a031f7fbd1baf4a9fc3ad106a93906192ea734))
@@ -39,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Prepare for edge coloring ([`23a0beb`](https://github.com/andy31415/igraph/commit/23a0beba4fa5d2230857c93ad39b609af2ddd647))
     - Adjusting changelogs prior to release of include-graph v1.0.7 ([`e555836`](https://github.com/andy31415/igraph/commit/e555836439e655d2d38b516fa2e4bca1c7c3387f))
 </details>
+
+ 1.0.9 (2024-03-01)
 
  1.0.8 (2024-02-28)
 
