@@ -27,6 +27,48 @@ use tracing::{debug, error, info};
 
 use super::{error::Error, graph::Graph};
 
+/// Defines an instruction regarding name mapping
+#[derive(Debug, PartialEq, Clone)]
+pub enum MapInstruction {
+    DisplayMap { from: String, to: String },
+    Keep(String),
+    Drop(String),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum GroupInstruction {
+    GroupSourceHeader,
+    GroupFromGn {
+        gn_root: String,
+        target: String,
+        source_root: String,
+        ignore_targets: HashSet<String>,
+    },
+    ManualGroup {
+        name: String,
+        color: Option<String>,
+        items: Vec<String>,
+    },
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ZoomItem {
+    name: String,
+    focused: bool,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum GroupEdgeEnd {
+    From(String),
+    To(String),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ColorInstruction {
+    end: GroupEdgeEnd,
+    color: String,
+}
+
 /// How a config file looks like
 #[derive(Debug, PartialEq, Clone)]
 enum InputCommand {
@@ -225,48 +267,6 @@ fn parse_input(input: &str) -> IResult<&str, Vec<InputCommand>> {
         .parse(input)
 }
 
-/// Defines an instruction regarding name mapping
-#[derive(Debug, PartialEq, Clone)]
-pub enum MapInstruction {
-    DisplayMap { from: String, to: String },
-    Keep(String),
-    Drop(String),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum GroupInstruction {
-    GroupSourceHeader,
-    GroupFromGn {
-        gn_root: String,
-        target: String,
-        source_root: String,
-        ignore_targets: HashSet<String>,
-    },
-    ManualGroup {
-        name: String,
-        color: Option<String>,
-        items: Vec<String>,
-    },
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct ZoomItem {
-    name: String,
-    focused: bool,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum GroupEdgeEnd {
-    From(String),
-    To(String),
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct ColorInstruction {
-    end: GroupEdgeEnd,
-    color: String,
-}
-
 impl Expanded for GraphInstructions {
     fn expanded_from(self, existing: &HashMap<String, String>) -> Self {
         Self {
@@ -436,12 +436,23 @@ fn parse_target_list(input: &str) -> IResult<&str, Vec<&str>> {
         .parse(input)
 }
 
+fn parse_group_by_extension(input: &str) -> IResult<&str, GroupInstruction> {
+    // TODO: in the future consider if we should allow a "group these extensions"
+    //       instead of automatic
+    //
+    //       Automatic seems nice because it just strips extensions regardless of
+    //       content.
+    value(
+        GroupInstruction::GroupSourceHeader,
+        tag_no_case("group_source_header"),
+    )
+    .terminated(opt(parse_whitespace))
+    .parse(input)
+}
+
 fn parse_group(input: &str) -> IResult<&str, Vec<GroupInstruction>> {
     many0(alt((
-        value(
-            GroupInstruction::GroupSourceHeader,
-            tag_no_case("group_source_header"),
-        ),
+        parse_group_by_extension,
         parse_gn_target,
         parse_manual_group,
     )))
