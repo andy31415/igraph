@@ -5,13 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
- 1.0.8 (2024-02-28)
+ 1.0.9 (2024-03-01)
 
 # Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 5 commits contributed to the release.
+ - 15 commits contributed to the release over the course of 2 calendar days.
+ - 2 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -22,12 +23,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Some doc comments for code to look pretty ([`8bdc874`](https://github.com/andy31415/igraph/commit/8bdc8749acd7fdf481ba4f70beaa892963412b0a))
+    - Much more maintainable expansion logic ([`59dba49`](https://github.com/andy31415/igraph/commit/59dba491832b8776c9105bd29b48cc075bc13e48))
+    - Move things around a bit ([`59a031f`](https://github.com/andy31415/igraph/commit/59a031f7fbd1baf4a9fc3ad106a93906192ea734))
+    - Slight format update ([`1f87653`](https://github.com/andy31415/igraph/commit/1f8765332c5683388ab105ce9cb2e6e0946ba896))
+    - Clippy ([`4544240`](https://github.com/andy31415/igraph/commit/45442409ebaf6f0cafc18bbeaf44f5c2210c591c))
+    - Much better isolated parsing instructions ([`3f50c54`](https://github.com/andy31415/igraph/commit/3f50c5468fb9f91f696958995bfdb9578ccb193a))
+    - Make parsing of variables and assignments a bit more modular ([`d02a1f5`](https://github.com/andy31415/igraph/commit/d02a1f50e9c0a540625d8cee0f6d3e4454b9c961))
+    - Start using eyre ... some errors look much nicer ([`c4bcddd`](https://github.com/andy31415/igraph/commit/c4bcddd044da7549403251b9a5440e34332d6d9e))
+    - Parsing of compiledb is clearer ([`9b44f56`](https://github.com/andy31415/igraph/commit/9b44f56687141b1f5493e74f894b56c182186d4c))
+    - Adjusting changelogs prior to release of include-graph v1.0.8 ([`9ce2f23`](https://github.com/andy31415/igraph/commit/9ce2f231d7b8a63ab50d81723bc28ca2892efb9d))
     - Clippy and format ([`26221af`](https://github.com/andy31415/igraph/commit/26221afb7e335e42201ea4f49408029c1e13f306))
     - Add back coloring of manual groups, add edge coloring capability ([`f4b5997`](https://github.com/andy31415/igraph/commit/f4b59979a223fe009a3346922c96c9c0af8010d8))
     - Add support for manual group coloring. ([`ef09081`](https://github.com/andy31415/igraph/commit/ef09081b8704dfb7946eecc6a6f3e748a91a6515))
     - Prepare for edge coloring ([`23a0beb`](https://github.com/andy31415/igraph/commit/23a0beba4fa5d2230857c93ad39b609af2ddd647))
     - Adjusting changelogs prior to release of include-graph v1.0.7 ([`e555836`](https://github.com/andy31415/igraph/commit/e555836439e655d2d38b516fa2e4bca1c7c3387f))
 </details>
+
+ 1.0.8 (2024-02-28)
 
  1.0.7 (2024-02-27)
 
