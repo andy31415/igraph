@@ -103,28 +103,35 @@ enum InputCommand {
     Glob(String),
 }
 
+fn parse_compiledb(input: &str) -> IResult<&str, InputCommand> {
+    #[derive(Clone, Copy)]
+    enum Type {
+        Includes,
+        Sources,
+    }
+    tuple((
+        alt((
+            value(Type::Includes, tag_no_case("includes")),
+            value(Type::Sources, tag_no_case("sources")),
+        ))
+        .terminated(parse_whitespace),
+        parse_until_whitespace.preceded_by(tuple((
+            tag_no_case("from"),
+            parse_whitespace,
+            tag_no_case("compiledb"),
+            parse_whitespace,
+        ))),
+    ))
+    .map(|(t, path)| match t {
+        Type::Includes => InputCommand::IncludesFromCompileDb(path.into()),
+        Type::Sources => InputCommand::SourcesFromCompileDb(path.into()),
+    })
+    .parse(input)
+}
+
 fn parse_input_command(input: &str) -> IResult<&str, InputCommand> {
     alt((
-        parse_until_whitespace
-            .preceded_by(tuple((
-                tag_no_case("includes"),
-                parse_whitespace,
-                tag_no_case("from"),
-                parse_whitespace,
-                tag_no_case("compiledb"),
-                parse_whitespace,
-            )))
-            .map(|s| InputCommand::IncludesFromCompileDb(s.into())),
-        parse_until_whitespace
-            .preceded_by(tuple((
-                tag_no_case("sources"),
-                parse_whitespace,
-                tag_no_case("from"),
-                parse_whitespace,
-                tag_no_case("compiledb"),
-                parse_whitespace,
-            )))
-            .map(|s| InputCommand::SourcesFromCompileDb(s.into())),
+        parse_compiledb,
         parse_until_whitespace
             .preceded_by(tuple((tag_no_case("glob"), parse_whitespace)))
             .map(|s| InputCommand::Glob(s.into())),

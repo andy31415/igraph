@@ -36,3 +36,4 @@ nom-supreme = "0.8.0"
 uuid = { version = "1.7.0", features = ["v6", "std", "rng"] }
 camino = "1.1.6"
 tera = "1.19.1"
+eyre = "0.6.12"
