@@ -1,7 +1,7 @@
 use camino::Utf8PathBuf;
 use clap::Parser;
 use color_eyre::{eyre::WrapErr, Result};
-use include_graph::dependencies::configfile::parse_config_file;
+use include_graph::dependencies::configfile::build_graph;
 
 use tokio::{
     fs::File,
@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let data = tokio::fs::read_to_string(&args.config)
         .await
         .wrap_err_with(|| format!("Failed to open {:?}", &args.config))?;
-    let graph = parse_config_file(&data).await?;
+    let graph = build_graph(&data).await?;
 
     match args.output {
         Some(path) => {

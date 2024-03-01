@@ -598,7 +598,7 @@ fn parse_config(input: &str) -> IResult<&str, ConfigurationFile> {
         .parse(input)
 }
 
-pub async fn parse_config_file(input: &str) -> Result<Graph, Report> {
+pub async fn build_graph(input: &str) -> Result<Graph, Report> {
     let (input, config) = parse_config(input)
         .map_err(|e| Error::ConfigParseError {
             message: format!("Nom error: {:?}", e),
