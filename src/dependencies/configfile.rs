@@ -97,7 +97,7 @@ struct GraphInstructions {
 #[derive(Debug, PartialEq, Clone, Default)]
 struct ConfigurationFile {
     /// Fully resolved variables
-    variables: HashMap<String, String>,
+    variable_map: HashMap<String, String>,
 
     /// What inputs are to be processed
     input_commands: Vec<InputCommand>,
@@ -108,7 +108,7 @@ struct ConfigurationFile {
 
 /// Something that changes by self-expanding variables
 trait Expanded {
-    fn expanded_from(self, existing: &HashMap<String, String>) -> Self;
+    fn expanded_from(self, variable_map: &HashMap<String, String>) -> Self;
 }
 
 trait ResolveVariables<O> {
@@ -117,27 +117,27 @@ trait ResolveVariables<O> {
 
 impl ResolveVariables<HashMap<String, String>> for Vec<VariableAssignment> {
     fn resolve_variables(self) -> HashMap<String, String> {
-        let mut variables = HashMap::new();
+        let mut variable_map = HashMap::new();
         for VariableAssignment { name, value } in self {
-            variables.insert(name, expand_variable(&value, &variables));
+            variable_map.insert(name, value.expanded_from(&variable_map));
         }
-        variables
+        variable_map
     }
 }
 
 impl Expanded for InputCommand {
-    fn expanded_from(self, existing: &HashMap<String, String>) -> Self {
+    fn expanded_from(self, variable_map: &HashMap<String, String>) -> Self {
         match self {
             InputCommand::IncludesFromCompileDb(p) => {
-                InputCommand::IncludesFromCompileDb(expand_variable(&p, existing))
+                InputCommand::IncludesFromCompileDb(p.expanded_from(variable_map))
             }
             InputCommand::SourcesFromCompileDb(p) => {
-                InputCommand::SourcesFromCompileDb(expand_variable(&p, existing))
+                InputCommand::SourcesFromCompileDb(p.expanded_from(variable_map))
             }
             InputCommand::IncludeDirectory(p) => {
-                InputCommand::IncludeDirectory(expand_variable(&p, existing))
+                InputCommand::IncludeDirectory(p.expanded_from(variable_map))
             }
-            InputCommand::Glob(p) => InputCommand::Glob(expand_variable(&p, existing)),
+            InputCommand::Glob(p) => InputCommand::Glob(p.expanded_from(variable_map)),
         }
     }
 }
@@ -171,12 +171,12 @@ impl<'a> std::fmt::Display for FullFileList<'a> {
     }
 }
 
-fn expand_variable(value: &str, existing: &HashMap<String, String>) -> String {
+fn expand_variable(value: &str, variable_map: &HashMap<String, String>) -> String {
     // expand any occurences of "${name}"
     let mut value = value.to_string();
 
     loop {
-        let replacements = existing
+        let replacements = variable_map
             .iter()
             .map(|(k, v)| (format!("${{{}}}", k), v))
             .filter(|(k, _v)| value.contains(k))
@@ -267,38 +267,63 @@ fn parse_input(input: &str) -> IResult<&str, Vec<InputCommand>> {
         .parse(input)
 }
 
+impl<T> Expanded for Vec<T>
+where
+    T: Expanded,
+{
+    fn expanded_from(self, variable_map: &HashMap<String, String>) -> Self {
+        self.into_iter()
+            .map(|v| v.expanded_from(variable_map))
+            .collect()
+    }
+}
+
+impl Expanded for String {
+    fn expanded_from(self, variable_map: &HashMap<String, String>) -> Self {
+        expand_variable(&self, variable_map)
+    }
+}
+
+impl Expanded for MapInstruction {
+    fn expanded_from(self, variable_map: &HashMap<String, String>) -> Self {
+        match self {
+            MapInstruction::DisplayMap { from, to } => MapInstruction::DisplayMap {
+                from: from.expanded_from(variable_map),
+                to: to.expanded_from(variable_map),
+            },
+            MapInstruction::Keep(v) => MapInstruction::Keep(v.expanded_from(variable_map)),
+            MapInstruction::Drop(v) => MapInstruction::Drop(v.expanded_from(variable_map)),
+        }
+    }
+}
+
+impl Expanded for GroupInstruction {
+    fn expanded_from(self, variable_map: &HashMap<String, String>) -> Self {
+        match self {
+            GroupInstruction::GroupSourceHeader => self,
+            GroupInstruction::GroupFromGn {
+                gn_root,
+                target,
+                source_root,
+                ignore_targets,
+            } => GroupInstruction::GroupFromGn {
+                gn_root: gn_root.expanded_from(variable_map),
+                target,
+                source_root: source_root.expanded_from(variable_map),
+                ignore_targets,
+            },
+            GroupInstruction::ManualGroup { name, color, items } => {
+                GroupInstruction::ManualGroup { name, color, items }
+            }
+        }
+    }
+}
+
 impl Expanded for GraphInstructions {
-    fn expanded_from(self, existing: &HashMap<String, String>) -> Self {
+    fn expanded_from(self, variable_map: &HashMap<String, String>) -> Self {
         Self {
-            map_instructions: self
-                .map_instructions
-                .into_iter()
-                .map(|instruction| match instruction {
-                    MapInstruction::DisplayMap { from, to } => MapInstruction::DisplayMap {
-                        from: expand_variable(&from, existing),
-                        to,
-                    },
-                    other => other,
-                })
-                .collect(),
-            group_instructions: self
-                .group_instructions
-                .into_iter()
-                .map(|instruction| match instruction {
-                    GroupInstruction::GroupFromGn {
-                        gn_root,
-                        target,
-                        source_root,
-                        ignore_targets,
-                    } => GroupInstruction::GroupFromGn {
-                        gn_root: expand_variable(&gn_root, existing),
-                        target,
-                        source_root: expand_variable(&source_root, existing),
-                        ignore_targets,
-                    },
-                    other => other,
-                })
-                .collect(),
+            map_instructions: self.map_instructions.expanded_from(variable_map),
+            group_instructions: self.group_instructions.expanded_from(variable_map),
             color_instructions: self.color_instructions,
             zoom_items: self.zoom_items,
         }
@@ -598,13 +623,13 @@ fn parse_variable_assignments(input: &str) -> IResult<&str, HashMap<String, Stri
 
 fn parse_config(input: &str) -> IResult<&str, ConfigurationFile> {
     tuple((parse_variable_assignments, parse_input, parse_graph))
-        .map(|(variables, input_commands, graph)| ConfigurationFile {
+        .map(|(variable_map, input_commands, graph)| ConfigurationFile {
             input_commands: input_commands
                 .into_iter()
-                .map(|cmd| cmd.expanded_from(&variables))
+                .map(|cmd| cmd.expanded_from(&variable_map))
                 .collect(),
-            graph: graph.expanded_from(&variables),
-            variables,
+            graph: graph.expanded_from(&variable_map),
+            variable_map,
         })
         .parse(input)
 }
@@ -623,7 +648,7 @@ pub async fn build_graph(input: &str) -> Result<Graph, Report> {
         .into());
     }
 
-    debug!("Variables: {:#?}", config.variables);
+    debug!("Variables: {:#?}", config.variable_map);
     debug!("Input:     {:#?}", config.input_commands);
     debug!("Graph:     {:#?}", config.graph);
 
@@ -934,8 +959,8 @@ mod tests {
 
     #[test]
     fn test_gn_instruction() {
-        let mut variables = HashMap::new();
-        variables.insert("Foo".into(), "Bar".into());
+        let mut variable_map = HashMap::new();
+        variable_map.insert("Foo".into(), "Bar".into());
 
         assert_eq!(
             parse_graph(
@@ -954,7 +979,7 @@ mod tests {
         }
         ",
             )
-            .map(|(r, g)| { (r, g.expanded_from(&variables)) }),
+            .map(|(r, g)| { (r, g.expanded_from(&variable_map)) }),
             Ok((
                 "",
                 GraphInstructions {
