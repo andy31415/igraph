@@ -109,7 +109,33 @@ struct ConfigurationFile {
     graph: GraphInstructions,
 }
 
+fn expand_variable(value: &str, variable_map: &HashMap<String, String>) -> String {
+    // expand any occurences of "${name}"
+    let mut value = value.to_string();
+
+    loop {
+        let replacements = variable_map
+            .iter()
+            .map(|(k, v)| (format!("${{{}}}", k), v))
+            .filter(|(k, _v)| value.contains(k))
+            .collect::<Vec<_>>();
+
+        if replacements.is_empty() {
+            break;
+        }
+
+        for (k, v) in replacements {
+            value = value.replace(&k, v);
+        }
+    }
+
+    value
+}
+
 /// Something that changes by self-expanding variables
+///
+/// Variable expansion is replacing "${name}" with the content of the
+/// key `name` in the variable_map hashmap
 trait Expanded {
     fn expanded_from(self, variable_map: &HashMap<String, String>) -> Self;
 }
@@ -125,6 +151,33 @@ impl ResolveVariables<HashMap<String, String>> for Vec<VariableAssignment> {
             variable_map.insert(name, value.expanded_from(&variable_map));
         }
         variable_map
+    }
+}
+
+impl Expanded for ZoomItem {
+    fn expanded_from(self, variable_map: &HashMap<String, String>) -> Self {
+        Self {
+            name: self.name.expanded_from(variable_map),
+            ..self
+        }
+    }
+}
+
+impl Expanded for GroupEdgeEnd {
+    fn expanded_from(self, variable_map: &HashMap<String, String>) -> Self {
+        match self {
+            GroupEdgeEnd::From(v) => GroupEdgeEnd::From(v.expanded_from(variable_map)),
+            GroupEdgeEnd::To(v) => GroupEdgeEnd::To(v.expanded_from(variable_map)),
+        }
+    }
+}
+
+impl Expanded for ColorInstruction {
+    fn expanded_from(self, variable_map: &HashMap<String, String>) -> Self {
+        Self {
+            end: self.end.expanded_from(variable_map),
+            color: self.color.expanded_from(variable_map),
+        }
     }
 }
 
@@ -175,29 +228,6 @@ impl<'a> std::fmt::Display for FullFileList<'a> {
         }
         Ok(())
     }
-}
-
-fn expand_variable(value: &str, variable_map: &HashMap<String, String>) -> String {
-    // expand any occurences of "${name}"
-    let mut value = value.to_string();
-
-    loop {
-        let replacements = variable_map
-            .iter()
-            .map(|(k, v)| (format!("${{{}}}", k), v))
-            .filter(|(k, _v)| value.contains(k))
-            .collect::<Vec<_>>();
-
-        if replacements.is_empty() {
-            break;
-        }
-
-        for (k, v) in replacements {
-            value = value.replace(&k, v);
-        }
-    }
-
-    value
 }
 
 /// Parse an individual comment.
@@ -382,8 +412,8 @@ impl Expanded for GraphInstructions {
         Self {
             map_instructions: self.map_instructions.expanded_from(variable_map),
             group_instructions: self.group_instructions.expanded_from(variable_map),
-            color_instructions: self.color_instructions,
-            zoom_items: self.zoom_items,
+            color_instructions: self.color_instructions.expanded_from(variable_map),
+            zoom_items: self.zoom_items.expanded_from(variable_map),
         }
     }
 }
@@ -682,10 +712,7 @@ fn parse_variable_assignments(input: &str) -> IResult<&str, HashMap<String, Stri
 fn parse_config(input: &str) -> IResult<&str, ConfigurationFile> {
     tuple((parse_variable_assignments, parse_input, parse_graph))
         .map(|(variable_map, input_commands, graph)| ConfigurationFile {
-            input_commands: input_commands
-                .into_iter()
-                .map(|cmd| cmd.expanded_from(&variable_map))
-                .collect(),
+            input_commands: input_commands.expanded_from(&variable_map),
             graph: graph.expanded_from(&variable_map),
             variable_map,
         })
