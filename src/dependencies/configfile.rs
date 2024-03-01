@@ -27,6 +27,35 @@ use tracing::{debug, error, info};
 
 use super::{error::Error, graph::Graph};
 
+/// How a config file looks like
+#[derive(Debug, PartialEq, Clone)]
+enum InputCommand {
+    IncludesFromCompileDb(String),
+    SourcesFromCompileDb(String),
+    IncludeDirectory(String),
+    Glob(String),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+struct VariableAssignment {
+    name: String,
+    value: String,
+}
+
+trait ResolveVariables<O> {
+    fn resolve_variables(self) -> O;
+}
+
+impl ResolveVariables<HashMap<String, String>> for Vec<VariableAssignment> {
+    fn resolve_variables(self) -> HashMap<String, String> {
+        let mut variables = HashMap::new();
+        for VariableAssignment { name, value } in self {
+            variables.insert(name, expand_variable(&value, &variables));
+        }
+        variables
+    }
+}
+
 #[derive(Debug, Default)]
 struct DependencyData {
     includes: HashSet<PathBuf>,
@@ -95,14 +124,6 @@ fn parse_variable_name(input: &str) -> IResult<&str, &str> {
 
 fn parse_until_whitespace(input: &str) -> IResult<&str, &str> {
     is_not("#\n\r \t").parse(input)
-}
-
-#[derive(Debug, PartialEq, Clone)]
-enum InputCommand {
-    IncludesFromCompileDb(String),
-    SourcesFromCompileDb(String),
-    IncludeDirectory(String),
-    Glob(String),
 }
 
 fn parse_compiledb(input: &str) -> IResult<&str, InputCommand> {
@@ -514,6 +535,29 @@ fn parse_graph<'a>(
     .parse(input)
 }
 
+fn parse_variable_assignment(input: &str) -> IResult<&str, VariableAssignment> {
+    separated_pair(
+        parse_variable_name,
+        tag_no_case("=")
+            .preceded_by(opt(parse_whitespace))
+            .terminated(opt(parse_whitespace)),
+        parse_until_whitespace,
+    )
+    .map(|(name, value)| VariableAssignment {
+        name: name.into(),
+        value: value.into(),
+    })
+    .parse(input)
+}
+
+fn parse_variable_assignments(input: &str) -> IResult<&str, HashMap<String, String>> {
+    separated_list0(parse_whitespace, parse_variable_assignment)
+        .preceded_by(opt(parse_whitespace))
+        .terminated(opt(parse_whitespace))
+        .map(|v| v.resolve_variables())
+        .parse(input)
+}
+
 pub async fn parse_config_file(input: &str) -> Result<Graph, Report> {
     let input = match parse_whitespace(input) {
         Ok((data, _)) => data,
@@ -521,24 +565,11 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Report> {
     };
 
     // First, parse all variables
-    let (input, input_vars) = separated_list0(
-        parse_whitespace,
-        separated_pair(
-            parse_variable_name,
-            tag_no_case("="),
-            parse_until_whitespace,
-        ),
-    )
-    .parse(input)
-    .map_err(|e| Error::ConfigParseError {
-        message: format!("Nom error: {:?}", e),
-    })
-    .wrap_err("Failed to parse with nom")?;
-
-    let mut variables = HashMap::new();
-    for (name, value) in input_vars {
-        variables.insert(name.to_string(), expand_variable(value, &variables));
-    }
+    let (input, variables) = parse_variable_assignments(input)
+        .map_err(|e| Error::ConfigParseError {
+            message: format!("Nom error: {:?}", e),
+        })
+        .wrap_err("Failed to parse with nom")?;
 
     debug!("Resolved variables: {:#?}", variables);
     debug!("Parsing instructions...");
@@ -1127,6 +1158,30 @@ mod tests {
                     InputCommand::Glob("blah/**/*".into()),
                 ]
             ))
+        );
+    }
+
+    #[test]
+    fn test_variable_assignments() {
+        assert_eq!(
+            parse_variable_assignments(
+                "
+             a = b
+             x=y
+             z=${a}${x}
+             ab=test
+             other=${a${a}}ing
+           "
+            ),
+            {
+                let mut expected = HashMap::new();
+                expected.insert("a".into(), "b".into());
+                expected.insert("x".into(), "y".into());
+                expected.insert("z".into(), "by".into());
+                expected.insert("ab".into(), "test".into());
+                expected.insert("other".into(), "testing".into());
+                Ok(("", expected))
+            }
         );
     }
 
