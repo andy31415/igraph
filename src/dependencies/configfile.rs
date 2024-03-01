@@ -532,7 +532,7 @@ fn parse_zoom(input: &str) -> IResult<&str, Vec<ZoomItem>> {
     .parse(input)
 }
 
-fn parse_graph<'a>(input: &'a str) -> IResult<&'a str, GraphInstructions> {
+fn parse_graph(input: &str) -> IResult<&str, GraphInstructions> {
     tuple((
         parse_map_instructions,
         parse_group,
