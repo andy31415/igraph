@@ -130,7 +130,9 @@ graph {
    # you can optionally provide instructions for edge coloring
    color edges {
      from some_group_name red
-     to other_group_name blue
+
+     # color may be prefixed with "bold" for a bold edge coloring
+     to other_group_name bold blue
    }
 
    # If zoom is non-empty it generates a separate area

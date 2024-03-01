@@ -64,9 +64,24 @@ pub enum GroupEdgeEnd {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub enum EdgeColor {
+    Regular(String),
+    Bold(String),
+}
+
+impl EdgeColor {
+    pub fn color_name(&self) -> &str {
+        match self {
+            EdgeColor::Regular(c) => &c,
+            EdgeColor::Bold(c) => &c,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct ColorInstruction {
     end: GroupEdgeEnd,
-    color: String,
+    color: EdgeColor,
 }
 
 /// How a config file looks like
@@ -172,6 +187,15 @@ impl Expanded for GroupEdgeEnd {
     }
 }
 
+impl Expanded for EdgeColor {
+    fn expanded_from(self, variable_map: &HashMap<String, String>) -> Self {
+        match self {
+            EdgeColor::Regular(c) => EdgeColor::Regular(c.expanded_from(variable_map)),
+            EdgeColor::Bold(c) => EdgeColor::Bold(c.expanded_from(variable_map)),
+        }
+    }
+}
+
 impl Expanded for ColorInstruction {
     fn expanded_from(self, variable_map: &HashMap<String, String>) -> Self {
         Self {
@@ -273,7 +297,8 @@ fn parse_variable_name(input: &str) -> IResult<&str, &str> {
     is_not("= \t\r\n{}[]()#").parse(input)
 }
 
-/// Parse things until the first whitespace character (comments are whitespace)
+/// Parse things until the first whitespace character (comments are whitespace).
+/// Parsing until end of input is also acceptable (end of input is whitespace)
 ///
 /// ```
 /// # use include_graph::dependencies::configfile::parse_until_whitespace;
@@ -584,50 +609,55 @@ fn parse_group(input: &str) -> IResult<&str, Vec<GroupInstruction>> {
     .parse(input)
 }
 
-fn parse_color_instructions(input: &str) -> IResult<&str, Vec<ColorInstruction>> {
-    many0(alt((
-        tuple((
-            parse_until_whitespace,
-            parse_until_whitespace.preceded_by(parse_whitespace),
+fn parse_color_instruction(input: &str) -> IResult<&str, ColorInstruction> {
+    #[derive(Copy, Clone, PartialEq)]
+    enum Direction {
+        From,
+        To,
+    }
+
+    tuple((
+        alt((
+            value(Direction::From, tag_no_case("from")),
+            value(Direction::To, tag_no_case("to")),
         ))
-        .preceded_by(tuple((
-            opt(parse_whitespace),
-            tag_no_case("from"),
-            parse_whitespace,
-        )))
-        .map(|(name, color)| ColorInstruction {
-            color: color.into(),
-            end: GroupEdgeEnd::From(name.into()),
-        }),
-        tuple((
-            parse_until_whitespace,
-            parse_until_whitespace.preceded_by(parse_whitespace),
-        ))
-        .preceded_by(tuple((
-            opt(parse_whitespace),
-            tag_no_case("to"),
-            parse_whitespace,
-        )))
-        .map(|(name, color)| ColorInstruction {
-            color: color.into(),
-            end: GroupEdgeEnd::To(name.into()),
-        }),
-    )))
-    .preceded_by(tuple((
-        opt(parse_whitespace),
-        tag_no_case("color"),
-        opt(parse_whitespace),
-        tag_no_case("edges"),
-        opt(parse_whitespace),
-        tag_no_case("{"),
-        opt(parse_whitespace),
-    )))
-    .terminated(tuple((
-        opt(parse_whitespace),
-        tag_no_case("}"),
-        opt(parse_whitespace),
-    )))
+        .preceded_by(opt(parse_whitespace))
+        .terminated(parse_whitespace),
+        parse_until_whitespace.terminated(parse_whitespace),
+        opt(tag_no_case("bold").terminated(parse_whitespace)).map(|v| v.is_some()),
+        parse_until_whitespace,
+    ))
+    .map(|(direction, name, bold, color)| ColorInstruction {
+        end: match direction {
+            Direction::From => GroupEdgeEnd::From(name.into()),
+            Direction::To => GroupEdgeEnd::To(name.into()),
+        },
+        color: if bold {
+            EdgeColor::Bold(color.into())
+        } else {
+            EdgeColor::Regular(color.into())
+        },
+    })
     .parse(input)
+}
+
+fn parse_color_instructions(input: &str) -> IResult<&str, Vec<ColorInstruction>> {
+    separated_list0(parse_whitespace, parse_color_instruction)
+        .preceded_by(tuple((
+            opt(parse_whitespace),
+            tag_no_case("color"),
+            parse_whitespace,
+            tag_no_case("edges"),
+            opt(parse_whitespace),
+            tag_no_case("{"),
+            opt(parse_whitespace),
+        )))
+        .terminated(tuple((
+            opt(parse_whitespace),
+            tag_no_case("}"),
+            opt(parse_whitespace),
+        )))
+        .parse(input)
 }
 
 fn parse_zoom(input: &str) -> IResult<&str, Vec<ZoomItem>> {
@@ -916,8 +946,8 @@ pub async fn build_graph(input: &str) -> Result<Graph, Report> {
 
     for i in config.graph.color_instructions {
         match i.end {
-            GroupEdgeEnd::From(name) => g.color_from(&name, &i.color),
-            GroupEdgeEnd::To(name) => g.color_to(&name, &i.color),
+            GroupEdgeEnd::From(name) => g.color_from(&name, &i.color.color_name()),
+            GroupEdgeEnd::To(name) => g.color_to(&name, &i.color.color_name()),
         }
     }
 
@@ -1100,6 +1130,53 @@ mod tests {
     }
 
     #[test]
+    fn test_color_instruction_parsing() {
+        assert_eq!(
+            parse_color_instruction("from source color"),
+            Ok((
+                "",
+                ColorInstruction {
+                    end: GroupEdgeEnd::From("source".into()),
+                    color: EdgeColor::Regular("color".into())
+                }
+            ))
+        );
+
+        assert_eq!(
+            parse_color_instruction("to destination color"),
+            Ok((
+                "",
+                ColorInstruction {
+                    end: GroupEdgeEnd::To("destination".into()),
+                    color: EdgeColor::Regular("color".into())
+                }
+            ))
+        );
+
+        assert_eq!(
+            parse_color_instruction("From x y"),
+            Ok((
+                "",
+                ColorInstruction {
+                    end: GroupEdgeEnd::From("x".into()),
+                    color: EdgeColor::Regular("y".into())
+                }
+            ))
+        );
+
+        assert_eq!(
+            parse_color_instruction("#comment\n  TO a bold b"),
+            Ok((
+                "",
+                ColorInstruction {
+                    end: GroupEdgeEnd::To("a".into()),
+                    color: EdgeColor::Bold("b".into())
+                }
+            ))
+        );
+    }
+
+    #[test]
     fn test_color_instructions_parsing() {
         assert_eq!(
             parse_color_instructions("color edges {}"),
@@ -1117,7 +1194,7 @@ mod tests {
          color edges {
             from x y
             to q r
-            from a b
+            from a bold b
          }"
             ),
             Ok((
@@ -1125,15 +1202,15 @@ mod tests {
                 vec![
                     ColorInstruction {
                         end: GroupEdgeEnd::From("x".into()),
-                        color: "y".into(),
+                        color: EdgeColor::Regular("y".into()),
                     },
                     ColorInstruction {
                         end: GroupEdgeEnd::To("q".into()),
-                        color: "r".into(),
+                        color: EdgeColor::Regular("r".into()),
                     },
                     ColorInstruction {
                         end: GroupEdgeEnd::From("a".into()),
-                        color: "b".into(),
+                        color: EdgeColor::Bold("b".into()),
                     },
                 ]
             ))
