@@ -42,6 +42,33 @@ struct VariableAssignment {
     value: String,
 }
 
+#[derive(Debug, PartialEq, Default, Clone)]
+struct GraphInstructions {
+    map_instructions: Vec<MapInstruction>,
+    group_instructions: Vec<GroupInstruction>,
+    color_instructions: Vec<ColorInstruction>,
+    zoom_items: Vec<ZoomItem>,
+}
+
+/// Defines a full configuration file, with components
+/// resolved as much as possible
+#[derive(Debug, PartialEq, Clone, Default)]
+struct ConfigurationFile {
+    /// Fully resolved variables
+    variables: HashMap<String, String>,
+
+    /// What inputs are to be processed
+    input_commands: Vec<InputCommand>,
+
+    /// Instructions to build a braph
+    graph: GraphInstructions,
+}
+
+/// Something that changes by self-expanding variables
+trait Expanded {
+    fn expanded_from(self, existing: &HashMap<String, String>) -> Self;
+}
+
 trait ResolveVariables<O> {
     fn resolve_variables(self) -> O;
 }
@@ -53,6 +80,23 @@ impl ResolveVariables<HashMap<String, String>> for Vec<VariableAssignment> {
             variables.insert(name, expand_variable(&value, &variables));
         }
         variables
+    }
+}
+
+impl Expanded for InputCommand {
+    fn expanded_from(self, existing: &HashMap<String, String>) -> Self {
+        match self {
+            InputCommand::IncludesFromCompileDb(p) => {
+                InputCommand::IncludesFromCompileDb(expand_variable(&p, existing))
+            }
+            InputCommand::SourcesFromCompileDb(p) => {
+                InputCommand::SourcesFromCompileDb(expand_variable(&p, existing))
+            }
+            InputCommand::IncludeDirectory(p) => {
+                InputCommand::IncludeDirectory(expand_variable(&p, existing))
+            }
+            InputCommand::Glob(p) => InputCommand::Glob(expand_variable(&p, existing)),
+        }
     }
 }
 
@@ -166,26 +210,23 @@ fn parse_input_command(input: &str) -> IResult<&str, InputCommand> {
 }
 
 fn parse_input(input: &str) -> IResult<&str, Vec<InputCommand>> {
-    tuple((
-        tuple((
+    separated_list0(parse_whitespace, parse_input_command)
+        .preceded_by(tuple((
             tag_no_case("input"),
             parse_whitespace,
             tag_no_case("{"),
             opt(parse_whitespace),
-        )),
-        separated_list0(parse_whitespace, parse_input_command),
-        tuple((
+        )))
+        .terminated(tuple((
             opt(parse_whitespace),
             tag_no_case("}"),
             opt(parse_whitespace),
-        )),
-    ))
-    .map(|(_, l, _)| l)
-    .parse(input)
+        )))
+        .parse(input)
 }
 
 /// Defines an instruction regarding name mapping
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum MapInstruction {
     DisplayMap { from: String, to: String },
     Keep(String),
@@ -208,41 +249,33 @@ pub enum GroupInstruction {
     },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ZoomItem {
     name: String,
     focused: bool,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum GroupEdgeEnd {
     From(String),
     To(String),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ColorInstruction {
     end: GroupEdgeEnd,
     color: String,
 }
 
-#[derive(Debug, PartialEq, Default)]
-struct GraphInstructions {
-    map_instructions: Vec<MapInstruction>,
-    group_instructions: Vec<GroupInstruction>,
-    color_instructions: Vec<ColorInstruction>,
-    zoom_items: Vec<ZoomItem>,
-}
-
-impl GraphInstructions {
-    fn mapped(self, variables: &HashMap<String, String>) -> Self {
+impl Expanded for GraphInstructions {
+    fn expanded_from(self, existing: &HashMap<String, String>) -> Self {
         Self {
             map_instructions: self
                 .map_instructions
                 .into_iter()
                 .map(|instruction| match instruction {
                     MapInstruction::DisplayMap { from, to } => MapInstruction::DisplayMap {
-                        from: expand_variable(&from, variables),
+                        from: expand_variable(&from, existing),
                         to,
                     },
                     other => other,
@@ -258,9 +291,9 @@ impl GraphInstructions {
                         source_root,
                         ignore_targets,
                     } => GroupInstruction::GroupFromGn {
-                        gn_root: expand_variable(&gn_root, variables),
+                        gn_root: expand_variable(&gn_root, existing),
                         target,
-                        source_root: expand_variable(&source_root, variables),
+                        source_root: expand_variable(&source_root, existing),
                         ignore_targets,
                     },
                     other => other,
@@ -499,10 +532,7 @@ fn parse_zoom(input: &str) -> IResult<&str, Vec<ZoomItem>> {
     .parse(input)
 }
 
-fn parse_graph<'a>(
-    input: &'a str,
-    variables: &'_ HashMap<String, String>,
-) -> IResult<&'a str, GraphInstructions> {
+fn parse_graph<'a>(input: &'a str) -> IResult<&'a str, GraphInstructions> {
     tuple((
         parse_map_instructions,
         parse_group,
@@ -522,14 +552,11 @@ fn parse_graph<'a>(
         opt(parse_whitespace),
     )))
     .map(
-        |(map_instructions, group_instructions, color_instructions, zoom)| {
-            GraphInstructions {
-                map_instructions,
-                group_instructions,
-                color_instructions: color_instructions.unwrap_or_default(),
-                zoom_items: zoom.unwrap_or_default(),
-            }
-            .mapped(variables)
+        |(map_instructions, group_instructions, color_instructions, zoom)| GraphInstructions {
+            map_instructions,
+            group_instructions,
+            color_instructions: color_instructions.unwrap_or_default(),
+            zoom_items: zoom.unwrap_or_default(),
         },
     )
     .parse(input)
@@ -558,85 +585,84 @@ fn parse_variable_assignments(input: &str) -> IResult<&str, HashMap<String, Stri
         .parse(input)
 }
 
-pub async fn parse_config_file(input: &str) -> Result<Graph, Report> {
-    let input = match parse_whitespace(input) {
-        Ok((data, _)) => data,
-        _ => input,
-    };
-
-    // First, parse all variables
-    let (input, variables) = parse_variable_assignments(input)
-        .map_err(|e| Error::ConfigParseError {
-            message: format!("Nom error: {:?}", e),
+fn parse_config(input: &str) -> IResult<&str, ConfigurationFile> {
+    tuple((parse_variable_assignments, parse_input, parse_graph))
+        .map(|(variables, input_commands, graph)| ConfigurationFile {
+            input_commands: input_commands
+                .into_iter()
+                .map(|cmd| cmd.expanded_from(&variables))
+                .collect(),
+            graph: graph.expanded_from(&variables),
+            variables,
         })
-        .wrap_err("Failed to parse with nom")?;
-
-    debug!("Resolved variables: {:#?}", variables);
-    debug!("Parsing instructions...");
-
-    let (input, instructions) = tuple((opt(parse_whitespace), parse_input, opt(parse_whitespace)))
-        .map(|(_, i, _)| i)
         .parse(input)
+}
+
+pub async fn parse_config_file(input: &str) -> Result<Graph, Report> {
+    let (input, config) = parse_config(input)
         .map_err(|e| Error::ConfigParseError {
             message: format!("Nom error: {:?}", e),
         })
         .wrap_err("Failed to parse with nom")?;
 
-    debug!("Instructions: {:#?}", instructions);
+    if !input.is_empty() {
+        return Err(Error::ConfigParseError {
+            message: format!("Not all input was consumed: {:?}", input),
+        }
+        .into());
+    }
+
+    debug!("Variables: {:#?}", config.variables);
+    debug!("Input:     {:#?}", config.input_commands);
+    debug!("Graph:     {:#?}", config.graph);
 
     let mut dependency_data = DependencyData::default();
 
-    for i in instructions {
+    for i in config.input_commands {
         match i {
-            InputCommand::IncludesFromCompileDb(cdb) => {
-                match parse_compile_database(&expand_variable(&cdb, &variables)).await {
-                    Ok(entries) => {
-                        for entry in entries {
-                            dependency_data.includes.extend(entry.include_directories);
-                        }
-                    }
-                    Err(err) => {
-                        error!("Error parsing compile database {}: {:?}", cdb, err);
+            InputCommand::IncludesFromCompileDb(cdb) => match parse_compile_database(&cdb).await {
+                Ok(entries) => {
+                    for entry in entries {
+                        dependency_data.includes.extend(entry.include_directories);
                     }
                 }
-            }
-            InputCommand::SourcesFromCompileDb(cdb) => {
-                match parse_compile_database(&expand_variable(&cdb, &variables)).await {
-                    Ok(entries) => {
-                        let includes_array = dependency_data
-                            .includes
-                            .clone()
-                            .into_iter()
-                            .collect::<Vec<_>>();
-                        for entry in entries {
-                            match extract_includes(&entry.file_path, &includes_array).await {
-                                Ok(includes) => {
-                                    dependency_data.files.push(SourceWithIncludes {
-                                        path: entry.file_path,
-                                        includes,
-                                    });
-                                }
-                                Err(e) => {
-                                    error!(
-                                        "Includee extraction for {:?} failed: {:?}",
-                                        &entry.file_path, e
-                                    );
-                                }
-                            };
-                        }
-                    }
-                    Err(err) => {
-                        error!("Error parsing compile database {}: {:?}", cdb, err);
+                Err(err) => {
+                    error!("Error parsing compile database {}: {:?}", cdb, err);
+                }
+            },
+            InputCommand::SourcesFromCompileDb(cdb) => match parse_compile_database(&cdb).await {
+                Ok(entries) => {
+                    let includes_array = dependency_data
+                        .includes
+                        .clone()
+                        .into_iter()
+                        .collect::<Vec<_>>();
+                    for entry in entries {
+                        match extract_includes(&entry.file_path, &includes_array).await {
+                            Ok(includes) => {
+                                dependency_data.files.push(SourceWithIncludes {
+                                    path: entry.file_path,
+                                    includes,
+                                });
+                            }
+                            Err(e) => {
+                                error!(
+                                    "Includee extraction for {:?} failed: {:?}",
+                                    &entry.file_path, e
+                                );
+                            }
+                        };
                     }
                 }
-            }
+                Err(err) => {
+                    error!("Error parsing compile database {}: {:?}", cdb, err);
+                }
+            },
             InputCommand::IncludeDirectory(path) => {
-                dependency_data
-                    .includes
-                    .insert(PathBuf::from(expand_variable(&path, &variables)));
+                dependency_data.includes.insert(PathBuf::from(path));
             }
             InputCommand::Glob(g) => {
-                let glob = match glob::glob(&expand_variable(&g, &variables)) {
+                let glob = match glob::glob(&g) {
                     Ok(value) => value,
                     Err(e) => {
                         error!("Glob error for {}: {:?}", g, e);
@@ -664,24 +690,9 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Report> {
         }
     }
 
-    let (input, instructions) = parse_graph(input, &variables)
-        .map_err(|e| Error::ConfigParseError {
-            message: format!("Nom error: {:?}", e),
-        })
-        .wrap_err("Failed to parse with nom")?;
-
-    if !input.is_empty() {
-        return Err(Error::ConfigParseError {
-            message: format!("Not all input was consumed: {:?}", input),
-        }
-        .into());
-    }
-
-    debug!("INSTRUCTIONS: {:#?}", instructions);
-
     // set up a path mapper
     let mut mapper = PathMapper::default();
-    for i in instructions.map_instructions.iter() {
+    for i in config.graph.map_instructions.iter() {
         if let MapInstruction::DisplayMap { from, to } = i {
             mapper.add_mapping(PathMapping {
                 from: PathBuf::from(from),
@@ -689,7 +700,8 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Report> {
             });
         }
     }
-    let keep = instructions
+    let keep = config
+        .graph
         .map_instructions
         .iter()
         .filter_map(|i| match i {
@@ -698,7 +710,8 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Report> {
         })
         .collect::<HashSet<_>>();
 
-    let drop = instructions
+    let drop = config
+        .graph
         .map_instructions
         .iter()
         .filter_map(|i| match i {
@@ -726,7 +739,7 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Report> {
     );
 
     // define all the groups
-    for group_instruction in instructions.group_instructions {
+    for group_instruction in config.graph.group_instructions {
         match group_instruction {
             GroupInstruction::GroupSourceHeader => {
                 g.group_extensions(&["h", "cpp", "hpp", "c", "cxx"]);
@@ -759,7 +772,7 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Report> {
     }
 
     // mark what is zoomed in ...
-    for item in instructions.zoom_items {
+    for item in config.graph.zoom_items {
         g.zoom_in(&item.name, item.focused)
     }
 
@@ -775,7 +788,7 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Report> {
         }
     }
 
-    for i in instructions.color_instructions {
+    for i in config.graph.color_instructions {
         match i.end {
             GroupEdgeEnd::From(name) => g.color_from(&name, &i.color),
             GroupEdgeEnd::To(name) => g.color_to(&name, &i.color),
@@ -929,8 +942,8 @@ mod tests {
               }
         }
         ",
-                &variables
-            ),
+            )
+            .map(|(r, g)| { (r, g.expanded_from(&variables)) }),
             Ok((
                 "",
                 GraphInstructions {
