@@ -1,5 +1,6 @@
 use camino::Utf8PathBuf;
 use clap::Parser;
+use color_eyre::{eyre::WrapErr, Result};
 use include_graph::dependencies::configfile::parse_config_file;
 
 use tokio::{
@@ -29,18 +30,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .finish(),
     )
     .unwrap();
+    color_eyre::install()?;
 
     let args = Args::parse();
 
-    let data = tokio::fs::read_to_string(&args.config).await?;
+    let data = tokio::fs::read_to_string(&args.config)
+        .await
+        .wrap_err_with(|| format!("Failed to open {:?}", &args.config))?;
     let graph = parse_config_file(&data).await?;
 
     match args.output {
         Some(path) => {
-            graph.write_dot(File::create(path).await?).await?;
+            graph
+                .write_dot(
+                    File::create(&path)
+                        .await
+                        .wrap_err_with(|| format!("Failed to create {:?}", path))?,
+                )
+                .await
+                .wrap_err_with(|| format!("Failed to write into {:?}", path))?;
         }
         None => {
-            graph.write_dot(io::stdout()).await?;
+            graph
+                .write_dot(io::stdout())
+                .await
+                .wrap_err("Failed to write to stdout")?;
         }
     };
 

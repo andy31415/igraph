@@ -5,6 +5,8 @@ use crate::dependencies::{
     graph::GraphBuilder,
     path_mapper::{PathMapper, PathMapping},
 };
+use color_eyre::Result;
+use color_eyre::{eyre::WrapErr, Report};
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag_no_case},
@@ -512,7 +514,7 @@ fn parse_graph<'a>(
     .parse(input)
 }
 
-pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
+pub async fn parse_config_file(input: &str) -> Result<Graph, Report> {
     let input = match parse_whitespace(input) {
         Ok((data, _)) => data,
         _ => input,
@@ -530,7 +532,8 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
     .parse(input)
     .map_err(|e| Error::ConfigParseError {
         message: format!("Nom error: {:?}", e),
-    })?;
+    })
+    .wrap_err("Failed to parse with nom")?;
 
     let mut variables = HashMap::new();
     for (name, value) in input_vars {
@@ -545,7 +548,8 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
         .parse(input)
         .map_err(|e| Error::ConfigParseError {
             message: format!("Nom error: {:?}", e),
-        })?;
+        })
+        .wrap_err("Failed to parse with nom")?;
 
     debug!("Instructions: {:#?}", instructions);
 
@@ -629,15 +633,17 @@ pub async fn parse_config_file(input: &str) -> Result<Graph, Error> {
         }
     }
 
-    let (input, instructions) =
-        parse_graph(input, &variables).map_err(|e| Error::ConfigParseError {
+    let (input, instructions) = parse_graph(input, &variables)
+        .map_err(|e| Error::ConfigParseError {
             message: format!("Nom error: {:?}", e),
-        })?;
+        })
+        .wrap_err("Failed to parse with nom")?;
 
     if !input.is_empty() {
         return Err(Error::ConfigParseError {
             message: format!("Not all input was consumed: {:?}", input),
-        });
+        }
+        .into());
     }
 
     debug!("INSTRUCTIONS: {:#?}", instructions);
