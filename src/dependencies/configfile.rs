@@ -194,13 +194,42 @@ fn expand_variable(value: &str, variable_map: &HashMap<String, String>) -> Strin
     value
 }
 
-fn parse_comment(input: &str) -> IResult<&str, &str> {
+/// Parse an individual comment.
+///
+/// ```
+/// # use include_graph::dependencies::configfile::parse_comment;
+///
+/// assert_eq!(parse_comment("# foo"), Ok(("", " foo")));
+/// assert_eq!(parse_comment("# foo\ntest"), Ok(("\ntest", " foo")));
+/// assert_eq!(parse_comment("# foo\n#bar"), Ok(("\n#bar", " foo")));
+/// assert!(parse_comment("blah").is_err());
+/// assert!(parse_comment("blah # rest").is_err());
+///
+/// ```
+pub fn parse_comment(input: &str) -> IResult<&str, &str> {
     pair(parsed_char('#'), opt(is_not("\n\r")))
         .map(|(_, r)| r.unwrap_or_default())
         .parse(input)
 }
 
-fn parse_whitespace(input: &str) -> IResult<&str, ()> {
+/// Parse whitespace until the first non-whitespace character
+///
+/// Whitespace is considered:
+///    - actual space
+///    - any comment(s)
+///
+/// ```
+/// # use include_graph::dependencies::configfile::parse_whitespace;
+///
+/// assert_eq!(parse_whitespace("  \n  foo"), Ok(("foo", ())));
+/// assert_eq!(parse_whitespace(" # test"), Ok(("", ())));
+/// assert_eq!(parse_whitespace("# rest"), Ok(("", ())));
+/// assert_eq!(parse_whitespace("  # test\n  \t# more\n  last\nthing"), Ok(("last\nthing", ())));
+///
+/// assert!(parse_whitespace("blah").is_err());
+///
+/// ```
+pub fn parse_whitespace(input: &str) -> IResult<&str, ()> {
     value((), many1(alt((multispace1, parse_comment)))).parse(input)
 }
 
@@ -208,7 +237,20 @@ fn parse_variable_name(input: &str) -> IResult<&str, &str> {
     is_not("= \t\r\n{}[]()#").parse(input)
 }
 
-fn parse_until_whitespace(input: &str) -> IResult<&str, &str> {
+/// Parse things until the first whitespace character (comments are whitespace)
+///
+/// ```
+/// # use include_graph::dependencies::configfile::parse_until_whitespace;
+///
+/// assert_eq!(parse_until_whitespace("x  \n  foo"), Ok(("  \n  foo", "x")));
+/// assert_eq!(parse_until_whitespace("foo bar"), Ok((" bar", "foo")));
+/// assert_eq!(parse_until_whitespace("foo"), Ok(("", "foo")));
+/// assert_eq!(parse_until_whitespace("foo# comment"), Ok(("# comment", "foo")));
+/// assert_eq!(parse_until_whitespace("foo then a # comment"), Ok((" then a # comment", "foo")));
+/// assert!(parse_until_whitespace("\n  foo").is_err());
+///
+/// ```
+pub fn parse_until_whitespace(input: &str) -> IResult<&str, &str> {
     is_not("#\n\r \t").parse(input)
 }
 
