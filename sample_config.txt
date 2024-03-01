@@ -10,21 +10,17 @@ OUTPUT_ROOT=${SOURCE_ROOT}/build/out
 #   - what files to be parsed using glob rules
 input {
     # You may include a compile_commands database which will parse
-    # includes (find `-I` arguments to a compiler)
-    includes from compiledb ${OUTPUT_ROOT}/compile_commands.json
-    
+    # includes (find `-I` arguments to a compiler) or sources.
+    #
+    # Note that compildb may not include all sources in a directory
+    # in which case you should use GLOB for full coverage
+    from compiledb ${OUTPUT_ROOT}/compile_commands.json load includes
+    from compiledb ${OUTPUT_ROOT}/other_compile_commands.json load sources
+    from compiledb ${OUTPUT_ROOT}/third.json load sources, includes
+
     # You may also manually include single directories
     include_dir ${SOURCE_ROOT}/includes/test
     include_dir /third/party/lib
-    
-    # Sources can be loaded directly from a compile database
-    # for more coverage
-    #
-    # NOTE:
-    #   this will include ONLY paths in the current target, and
-    #   targets sometimes do not build all fines in a directory.
-    #   Use glob for full coverage
-    sources from compiledb ${COMPILE_ROOT}/compile_commands.json
 
     # Globs are generally including all files. program filters
     # out based on extensions (h, hpp, c, cpp, cxx, cc)

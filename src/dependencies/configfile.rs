@@ -72,8 +72,11 @@ pub struct ColorInstruction {
 /// How a config file looks like
 #[derive(Debug, PartialEq, Clone)]
 enum InputCommand {
-    IncludesFromCompileDb(String),
-    SourcesFromCompileDb(String),
+    LoadCompileDb {
+        path: String,
+        load_includes: bool,
+        load_sources: bool,
+    },
     IncludeDirectory(String),
     Glob(String),
 }
@@ -128,12 +131,15 @@ impl ResolveVariables<HashMap<String, String>> for Vec<VariableAssignment> {
 impl Expanded for InputCommand {
     fn expanded_from(self, variable_map: &HashMap<String, String>) -> Self {
         match self {
-            InputCommand::IncludesFromCompileDb(p) => {
-                InputCommand::IncludesFromCompileDb(p.expanded_from(variable_map))
-            }
-            InputCommand::SourcesFromCompileDb(p) => {
-                InputCommand::SourcesFromCompileDb(p.expanded_from(variable_map))
-            }
+            InputCommand::LoadCompileDb {
+                path,
+                load_includes,
+                load_sources,
+            } => InputCommand::LoadCompileDb {
+                path: path.expanded_from(variable_map),
+                load_includes,
+                load_sources,
+            },
             InputCommand::IncludeDirectory(p) => {
                 InputCommand::IncludeDirectory(p.expanded_from(variable_map))
             }
@@ -255,27 +261,39 @@ pub fn parse_until_whitespace(input: &str) -> IResult<&str, &str> {
 }
 
 fn parse_compiledb(input: &str) -> IResult<&str, InputCommand> {
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, PartialEq)]
     enum Type {
         Includes,
         Sources,
     }
     tuple((
-        alt((
-            value(Type::Includes, tag_no_case("includes")),
-            value(Type::Sources, tag_no_case("sources")),
-        ))
-        .terminated(parse_whitespace),
-        parse_until_whitespace.preceded_by(tuple((
-            tag_no_case("from"),
-            parse_whitespace,
-            tag_no_case("compiledb"),
-            parse_whitespace,
-        ))),
+        parse_until_whitespace
+            .preceded_by(tuple((
+                opt(parse_whitespace),
+                tag_no_case("from"),
+                parse_whitespace,
+                tag_no_case("compiledb"),
+                parse_whitespace,
+            )))
+            .terminated(parse_whitespace),
+        separated_list0(
+            tuple((
+                opt(parse_whitespace),
+                tag_no_case(","),
+                opt(parse_whitespace),
+            )),
+            alt((
+                value(Type::Includes, tag_no_case("includes")),
+                value(Type::Sources, tag_no_case("sources")),
+            )),
+        )
+        .preceded_by(tuple((tag_no_case("load"), opt(parse_whitespace))))
+        .terminated(opt(parse_whitespace)),
     ))
-    .map(|(t, path)| match t {
-        Type::Includes => InputCommand::IncludesFromCompileDb(path.into()),
-        Type::Sources => InputCommand::SourcesFromCompileDb(path.into()),
+    .map(|(path, selections)| InputCommand::LoadCompileDb {
+        path: path.into(),
+        load_includes: selections.contains(&Type::Includes),
+        load_sources: selections.contains(&Type::Sources),
     })
     .parse(input)
 }
@@ -285,16 +303,18 @@ fn parse_input_command(input: &str) -> IResult<&str, InputCommand> {
         parse_compiledb,
         parse_until_whitespace
             .preceded_by(tuple((tag_no_case("glob"), parse_whitespace)))
+            .terminated(opt(parse_whitespace))
             .map(|s| InputCommand::Glob(s.into())),
         parse_until_whitespace
             .preceded_by(tuple((tag_no_case("include_dir"), parse_whitespace)))
+            .terminated(opt(parse_whitespace))
             .map(|s| InputCommand::IncludeDirectory(s.into())),
     ))
     .parse(input)
 }
 
 fn parse_input(input: &str) -> IResult<&str, Vec<InputCommand>> {
-    separated_list0(parse_whitespace, parse_input_command)
+    many0(parse_input_command)
         .preceded_by(tuple((
             tag_no_case("input"),
             parse_whitespace,
@@ -302,7 +322,6 @@ fn parse_input(input: &str) -> IResult<&str, Vec<InputCommand>> {
             opt(parse_whitespace),
         )))
         .terminated(tuple((
-            opt(parse_whitespace),
             tag_no_case("}"),
             opt(parse_whitespace),
         )))
@@ -698,18 +717,26 @@ pub async fn build_graph(input: &str) -> Result<Graph, Report> {
 
     for i in config.input_commands {
         match i {
-            InputCommand::IncludesFromCompileDb(cdb) => match parse_compile_database(&cdb).await {
-                Ok(entries) => {
-                    for entry in entries {
-                        dependency_data.includes.extend(entry.include_directories);
+            InputCommand::LoadCompileDb {
+                path,
+                load_includes,
+                load_sources,
+            } => {
+                let entries = match parse_compile_database(&path).await {
+                    Ok(entries) => entries,
+                    Err(err) => {
+                        error!("Error parsing compile database {}: {:?}", path, err);
+                        continue;
+                    }
+                };
+                if load_includes {
+                    for entry in entries.iter() {
+                        dependency_data
+                            .includes
+                            .extend(entry.include_directories.clone());
                     }
                 }
-                Err(err) => {
-                    error!("Error parsing compile database {}: {:?}", cdb, err);
-                }
-            },
-            InputCommand::SourcesFromCompileDb(cdb) => match parse_compile_database(&cdb).await {
-                Ok(entries) => {
+                if load_sources {
                     let includes_array = dependency_data
                         .includes
                         .clone()
@@ -732,10 +759,7 @@ pub async fn build_graph(input: &str) -> Result<Graph, Report> {
                         };
                     }
                 }
-                Err(err) => {
-                    error!("Error parsing compile database {}: {:?}", cdb, err);
-                }
-            },
+            }
             InputCommand::IncludeDirectory(path) => {
                 dependency_data.includes.insert(PathBuf::from(path));
             }
@@ -1219,19 +1243,115 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_glob() {
+        assert_eq!(
+            parse_input_command("glob a/b/**/*"),
+            Ok(("", InputCommand::Glob("a/b/**/*".into())))
+        );
+
+        assert_eq!(
+            parse_input_command("glob a/x/**/*.h # should consume whitespace\n\n  \n\t\n  "),
+            Ok(("", InputCommand::Glob("a/x/**/*.h".into())))
+        );
+    }
+
+    #[test]
+    fn test_parse_include_dir() {
+        assert_eq!(
+            parse_input_command("include_dir a/b/**/*"),
+            Ok(("", InputCommand::IncludeDirectory("a/b/**/*".into())))
+        );
+
+        assert_eq!(
+            parse_input_command("include_dir a/x/**/*.h # should consume whitespace\n\n  \n\t\n  "),
+            Ok(("", InputCommand::IncludeDirectory("a/x/**/*.h".into())))
+        );
+    }
+
+    #[test]
+    fn test_parse_compiledb() {
+        assert_eq!(
+            parse_compiledb("from compiledb foo load includes"),
+            Ok((
+                "",
+                InputCommand::LoadCompileDb {
+                    path: "foo".into(),
+                    load_includes: true,
+                    load_sources: false
+                }
+            ))
+        );
+
+        assert_eq!(
+            parse_compiledb("from compiledb bar load sources"),
+            Ok((
+                "",
+                InputCommand::LoadCompileDb {
+                    path: "bar".into(),
+                    load_includes: false,
+                    load_sources: true
+                }
+            ))
+        );
+
+        assert_eq!(
+            parse_compiledb("from compiledb bar load sources, includes, sources"),
+            Ok((
+                "",
+                InputCommand::LoadCompileDb {
+                    path: "bar".into(),
+                    load_includes: true,
+                    load_sources: true
+                }
+            ))
+        );
+
+        assert_eq!(
+            parse_compiledb(
+                "
+                # This is a comment (and whitespace) prefix
+                from compiledb x/y/z load sources, sources\n# space/comment suffix\n"
+            ),
+            Ok((
+                "",
+                InputCommand::LoadCompileDb {
+                    path: "x/y/z".into(),
+                    load_includes: false,
+                    load_sources: true
+                }
+            ))
+        );
+
+        assert_eq!(
+            parse_compiledb(
+                "
+                from compiledb x/y/z load sources, sources\nremaining"
+            ),
+            Ok((
+                "remaining",
+                InputCommand::LoadCompileDb {
+                    path: "x/y/z".into(),
+                    load_includes: false,
+                    load_sources: true
+                }
+            ))
+        );
+    }
+
+    #[test]
     fn test_parse_input() {
         assert_eq!(
             parse_input(
                 "input {
-           includes from compiledb some_compile_db.json
+           from compiledb some_compile_db.json load includes
            include_dir foo
-           sources from compiledb some_compile_db.json
-           
+           from compiledb some_compile_db.json load sources
+
            glob xyz/**/*
 
            include_dir bar
-           includes from compiledb another.json
-            
+           from compiledb another.json load sources, includes
+
            glob final/**/*
            glob blah/**/*
         }"
@@ -1239,12 +1359,24 @@ mod tests {
             Ok((
                 "",
                 vec![
-                    InputCommand::IncludesFromCompileDb("some_compile_db.json".into()),
+                    InputCommand::LoadCompileDb {
+                        path: "some_compile_db.json".into(),
+                        load_includes: true,
+                        load_sources: false
+                    },
                     InputCommand::IncludeDirectory("foo".into()),
-                    InputCommand::SourcesFromCompileDb("some_compile_db.json".into()),
+                    InputCommand::LoadCompileDb {
+                        path: "some_compile_db.json".into(),
+                        load_includes: false,
+                        load_sources: true
+                    },
                     InputCommand::Glob("xyz/**/*".into()),
                     InputCommand::IncludeDirectory("bar".into()),
-                    InputCommand::IncludesFromCompileDb("another.json".into()),
+                    InputCommand::LoadCompileDb {
+                        path: "another.json".into(),
+                        load_includes: true,
+                        load_sources: true
+                    },
                     InputCommand::Glob("final/**/*".into()),
                     InputCommand::Glob("blah/**/*".into()),
                 ]
