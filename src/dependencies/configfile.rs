@@ -321,10 +321,7 @@ fn parse_input(input: &str) -> IResult<&str, Vec<InputCommand>> {
             tag_no_case("{"),
             opt(parse_whitespace),
         )))
-        .terminated(tuple((
-            tag_no_case("}"),
-            opt(parse_whitespace),
-        )))
+        .terminated(tuple((tag_no_case("}"), opt(parse_whitespace))))
         .parse(input)
 }
 
