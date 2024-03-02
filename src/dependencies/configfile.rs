@@ -72,8 +72,8 @@ pub enum EdgeColor {
 impl EdgeColor {
     pub fn color_name(&self) -> &str {
         match self {
-            EdgeColor::Regular(c) => &c,
-            EdgeColor::Bold(c) => &c,
+            EdgeColor::Regular(c) => c,
+            EdgeColor::Bold(c) => c,
         }
     }
 
