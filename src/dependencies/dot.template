@@ -51,10 +51,9 @@ digraph include_graph {
    {% if link.from.node_id %} {{ link.from.node_id }} {% else %} {{link.from.group_id}} {% endif -%}
    ->
    {%- if link.to.node_id %} {{ link.to.node_id }} {% else %} {{link.to.group_id}} {% endif -%}
-   [
-   {%- if link.color %} color="{{link.color}}" {%- endif -%}
-   {%- if link.is_bold %} style="bold" {%- endif -%}
-   ]
-   ;
+   [arrowhead="normal"
+   {%- if link.color -%};color="{{link.color}}" {%- endif -%}
+   {%- if link.is_bold -%};style="bold" {%- endif -%}
+   ];
 {%- endfor %}
 }

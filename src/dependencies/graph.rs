@@ -102,7 +102,7 @@ pub struct GraphLink {
     pub from: LinkNode,
     pub to: LinkNode,
     pub color: Option<String>, // specific color for a link
-    pub is_bold: bool, // should the link color be bold?
+    pub is_bold: bool,         // should the link color be bold?
 }
 
 impl GraphLink {
@@ -228,7 +228,6 @@ impl GraphBuilder {
                 return;
             }
         };
-
 
         let keys = self
             .graph
