@@ -76,6 +76,13 @@ impl EdgeColor {
             EdgeColor::Bold(c) => &c,
         }
     }
+
+    pub fn is_bold(&self) -> bool {
+        match self {
+            EdgeColor::Regular(_) => false,
+            EdgeColor::Bold(_) => true,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -946,8 +953,10 @@ pub async fn build_graph(input: &str) -> Result<Graph, Report> {
 
     for i in config.graph.color_instructions {
         match i.end {
-            GroupEdgeEnd::From(name) => g.color_from(&name, &i.color.color_name()),
-            GroupEdgeEnd::To(name) => g.color_to(&name, &i.color.color_name()),
+            GroupEdgeEnd::From(name) => {
+                g.color_from(&name, i.color.color_name(), i.color.is_bold())
+            }
+            GroupEdgeEnd::To(name) => g.color_to(&name, i.color.color_name(), i.color.is_bold()),
         }
     }
 

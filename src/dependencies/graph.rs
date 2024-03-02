@@ -102,6 +102,7 @@ pub struct GraphLink {
     pub from: LinkNode,
     pub to: LinkNode,
     pub color: Option<String>, // specific color for a link
+    pub is_bold: bool, // should the link color be bold?
 }
 
 impl GraphLink {
@@ -109,7 +110,7 @@ impl GraphLink {
         Some(Self {
             from: self.from.try_remap(m)?,
             to: self.to.try_remap(m)?,
-            color: None,
+            ..self.clone()
         })
     }
 }
@@ -219,7 +220,7 @@ impl GraphBuilder {
         }
     }
 
-    pub fn color_from(&mut self, group_name: &str, color: &str) {
+    pub fn color_from(&mut self, group_name: &str, color: &str, is_bold: bool) {
         let group_id = match self.group_name_to_id.get(group_name) {
             Some(id) => id,
             None => {
@@ -227,6 +228,7 @@ impl GraphBuilder {
                 return;
             }
         };
+
 
         let keys = self
             .graph
@@ -241,12 +243,13 @@ impl GraphBuilder {
             self.graph.links.remove(&k);
             self.graph.links.insert(GraphLink {
                 color: Some(color.into()),
+                is_bold,
                 ..k
             });
         }
     }
 
-    pub fn color_to(&mut self, group_name: &str, color: &str) {
+    pub fn color_to(&mut self, group_name: &str, color: &str, is_bold: bool) {
         let group_id = match self.group_name_to_id.get(group_name) {
             Some(id) => id,
             None => {
@@ -268,6 +271,7 @@ impl GraphBuilder {
             self.graph.links.remove(&k);
             self.graph.links.insert(GraphLink {
                 color: Some(color.into()),
+                is_bold,
                 ..k
             });
         }
@@ -368,7 +372,7 @@ impl GraphBuilder {
             .map(|l| GraphLink {
                 from: l.from.without_node(),
                 to: l.to.without_node(),
-                color: l.color.clone(),
+                ..l.clone()
             })
             .filter(|l| l.from != l.to)
             .collect::<HashSet<_>>();
@@ -428,6 +432,7 @@ impl GraphBuilder {
             from,
             to,
             color: None,
+            is_bold: false,
         });
     }
 
