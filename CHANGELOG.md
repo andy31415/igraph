@@ -5,14 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
- 1.1.0 (2024-03-01)
+ 1.1.1 (2024-03-02)
 
 # Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 18 commits contributed to the release over the course of 2 calendar days.
- - 2 days passed between releases.
+ - 24 commits contributed to the release over the course of 3 calendar days.
+ - 3 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Clippy fix ([`00e32ed`](https://github.com/andy31415/igraph/commit/00e32ed7a574dc07bdfc893aa5e1febea900331b))
+    - Format and slight output update ([`a1af81c`](https://github.com/andy31415/igraph/commit/a1af81cdf839a1f5fbcd2db303503ec50713e9c2))
+    - Bold edges now work ([`543ed2c`](https://github.com/andy31415/igraph/commit/543ed2cb7ecc37411ca79f7419c7fcc3ce9b6842))
+    - Add parsing for bold edges ([`6a81588`](https://github.com/andy31415/igraph/commit/6a8158834d49c9c473903c703ab2b74663e43619))
+    - More expansion, better maintainability ([`d82638d`](https://github.com/andy31415/igraph/commit/d82638d13a7adb7f79c1ed65e5efa64706c8f251))
+    - Adjusting changelogs prior to release of include-graph v1.1.0 ([`cd3f453`](https://github.com/andy31415/igraph/commit/cd3f4539c6c35565449ed5898b7c062d18a7d7c9))
     - Cargo format ([`89ebe92`](https://github.com/andy31415/igraph/commit/89ebe92ba0534068ce9c82ef0a085a4e74e06416))
     - Update config for compiledb to make it clearer ([`9f010a1`](https://github.com/andy31415/igraph/commit/9f010a1b676476bf20b2653bfac41c739f9c6acc))
     - Adjusting changelogs prior to release of include-graph v1.0.9 ([`6f9a138`](https://github.com/andy31415/igraph/commit/6f9a1384d7b29b789cac99948b48ead95d5cc79e))
@@ -42,6 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Prepare for edge coloring ([`23a0beb`](https://github.com/andy31415/igraph/commit/23a0beba4fa5d2230857c93ad39b609af2ddd647))
     - Adjusting changelogs prior to release of include-graph v1.0.7 ([`e555836`](https://github.com/andy31415/igraph/commit/e555836439e655d2d38b516fa2e4bca1c7c3387f))
 </details>
+
+ 1.1.0 (2024-03-01)
 
  1.0.9 (2024-03-01)
 
