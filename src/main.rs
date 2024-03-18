@@ -7,6 +7,7 @@ use tokio::{
     fs::File,
     io::{self},
 };
+use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 /// A program generating DOT graphs for include dependencies.
@@ -26,7 +27,11 @@ struct Args {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::subscriber::set_global_default(
         FmtSubscriber::builder()
-            .with_env_filter(EnvFilter::from_default_env())
+            .with_env_filter(
+                EnvFilter::builder()
+                    .with_default_directive(LevelFilter::WARN.into())
+                    .from_env_lossy(),
+            )
             .finish(),
     )
     .unwrap();

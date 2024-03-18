@@ -23,7 +23,7 @@ use std::{
     path::PathBuf,
 };
 
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 
 use super::{error::Error, graph::Graph};
 
@@ -790,6 +790,15 @@ pub async fn build_graph(input: &str) -> Result<Graph, Report> {
                         continue;
                     }
                 };
+                if entries.is_empty() {
+                    warn!(target: "compile-db", "No entries loaded from {}", path);
+                    warn!(target: "compile-db",
+                    "This may happen if directory/source paths are not correct (e.g. compilation on a different system)."
+                    );
+                    warn!(target: "compile-db",
+                        "Consider debugging by setting RUST_LOG=\"compile-db=debug\" to debug entry parsing."
+                    );
+                }
                 info!(target: "compile-db", "Loaded {} compile entries from {}", entries.len(), &path);
                 if load_include_directories {
                     let compile_db_includes = entries
