@@ -96,7 +96,7 @@ pub struct ColorInstruction {
 enum InputCommand {
     LoadCompileDb {
         path: String,
-        load_includes: bool,
+        load_include_directories: bool,
         load_sources: bool,
     },
     IncludeDirectory(String),
@@ -217,11 +217,11 @@ impl Expanded for InputCommand {
         match self {
             InputCommand::LoadCompileDb {
                 path,
-                load_includes,
+                load_include_directories,
                 load_sources,
             } => InputCommand::LoadCompileDb {
                 path: path.expanded_from(variable_map),
-                load_includes,
+                load_include_directories,
                 load_sources,
             },
             InputCommand::IncludeDirectory(p) => {
@@ -345,7 +345,7 @@ fn parse_compiledb(input: &str) -> IResult<&str, InputCommand> {
                 opt(parse_whitespace),
             )),
             alt((
-                value(Type::Includes, tag_no_case("includes")),
+                value(Type::Includes, tag_no_case("include_dirs")),
                 value(Type::Sources, tag_no_case("sources")),
             )),
         )
@@ -354,7 +354,7 @@ fn parse_compiledb(input: &str) -> IResult<&str, InputCommand> {
     ))
     .map(|(path, selections)| InputCommand::LoadCompileDb {
         path: path.into(),
-        load_includes: selections.contains(&Type::Includes),
+        load_include_directories: selections.contains(&Type::Includes),
         load_sources: selections.contains(&Type::Sources),
     })
     .parse(input)
@@ -780,7 +780,7 @@ pub async fn build_graph(input: &str) -> Result<Graph, Report> {
         match i {
             InputCommand::LoadCompileDb {
                 path,
-                load_includes,
+                load_include_directories,
                 load_sources,
             } => {
                 let entries = match parse_compile_database(&path).await {
@@ -790,12 +790,16 @@ pub async fn build_graph(input: &str) -> Result<Graph, Report> {
                         continue;
                     }
                 };
-                if load_includes {
-                    for entry in entries.iter() {
-                        dependency_data
-                            .includes
-                            .extend(entry.include_directories.clone());
-                    }
+                info!(target: "compile-db", "Loaded {} compile entries from {}", entries.len(), &path);
+                if load_include_directories {
+                    let compile_db_includes = entries
+                        .iter()
+                        .flat_map(|e| e.include_directories.clone())
+                        .collect::<HashSet<_>>();
+                    info!(target: "compile-db",
+                            "Include directories from {}: {:#?}", &path, compile_db_includes);
+
+                    dependency_data.includes.extend(compile_db_includes);
                 }
                 if load_sources {
                     let includes_array = dependency_data
@@ -806,6 +810,7 @@ pub async fn build_graph(input: &str) -> Result<Graph, Report> {
                     for entry in entries {
                         match extract_includes(&entry.file_path, &includes_array).await {
                             Ok(includes) => {
+                                info!(target: "compile-db", "Loaded {:?} with includes {:#?}", &entry.file_path, includes);
                                 dependency_data.files.push(SourceWithIncludes {
                                     path: entry.file_path,
                                     includes,
@@ -1381,12 +1386,12 @@ mod tests {
     #[test]
     fn test_parse_compiledb() {
         assert_eq!(
-            parse_compiledb("from compiledb foo load includes"),
+            parse_compiledb("from compiledb foo load include_dirs"),
             Ok((
                 "",
                 InputCommand::LoadCompileDb {
                     path: "foo".into(),
-                    load_includes: true,
+                    load_include_directories: true,
                     load_sources: false
                 }
             ))
@@ -1398,19 +1403,19 @@ mod tests {
                 "",
                 InputCommand::LoadCompileDb {
                     path: "bar".into(),
-                    load_includes: false,
+                    load_include_directories: false,
                     load_sources: true
                 }
             ))
         );
 
         assert_eq!(
-            parse_compiledb("from compiledb bar load sources, includes, sources"),
+            parse_compiledb("from compiledb bar load sources, include_dirs, sources"),
             Ok((
                 "",
                 InputCommand::LoadCompileDb {
                     path: "bar".into(),
-                    load_includes: true,
+                    load_include_directories: true,
                     load_sources: true
                 }
             ))
@@ -1426,7 +1431,7 @@ mod tests {
                 "",
                 InputCommand::LoadCompileDb {
                     path: "x/y/z".into(),
-                    load_includes: false,
+                    load_include_directories: false,
                     load_sources: true
                 }
             ))
@@ -1441,7 +1446,7 @@ mod tests {
                 "remaining",
                 InputCommand::LoadCompileDb {
                     path: "x/y/z".into(),
-                    load_includes: false,
+                    load_include_directories: false,
                     load_sources: true
                 }
             ))
@@ -1453,14 +1458,14 @@ mod tests {
         assert_eq!(
             parse_input(
                 "input {
-           from compiledb some_compile_db.json load includes
+           from compiledb some_compile_db.json load include_dirs
            include_dir foo
            from compiledb some_compile_db.json load sources
 
            glob xyz/**/*
 
            include_dir bar
-           from compiledb another.json load sources, includes
+           from compiledb another.json load sources, include_dirs
 
            glob final/**/*
            glob blah/**/*
@@ -1471,20 +1476,20 @@ mod tests {
                 vec![
                     InputCommand::LoadCompileDb {
                         path: "some_compile_db.json".into(),
-                        load_includes: true,
+                        load_include_directories: true,
                         load_sources: false
                     },
                     InputCommand::IncludeDirectory("foo".into()),
                     InputCommand::LoadCompileDb {
                         path: "some_compile_db.json".into(),
-                        load_includes: false,
+                        load_include_directories: false,
                         load_sources: true
                     },
                     InputCommand::Glob("xyz/**/*".into()),
                     InputCommand::IncludeDirectory("bar".into()),
                     InputCommand::LoadCompileDb {
                         path: "another.json".into(),
-                        load_includes: true,
+                        load_include_directories: true,
                         load_sources: true
                     },
                     InputCommand::Glob("final/**/*".into()),

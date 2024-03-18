@@ -14,9 +14,9 @@ input {
     #
     # Note that compildb may not include all sources in a directory
     # in which case you should use GLOB for full coverage
-    from compiledb ${OUTPUT_ROOT}/compile_commands.json load includes
+    from compiledb ${OUTPUT_ROOT}/compile_commands.json load include_dirs
     from compiledb ${OUTPUT_ROOT}/other_compile_commands.json load sources
-    from compiledb ${OUTPUT_ROOT}/third.json load sources, includes
+    from compiledb ${OUTPUT_ROOT}/third.json load sources, include_dirs
 
     # You may also manually include single directories
     include_dir ${SOURCE_ROOT}/includes/test

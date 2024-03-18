@@ -58,9 +58,9 @@ input {
     #
     # Note that compildb may not include all sources in a directory
     # in which case you should use GLOB for full coverage
-    from compiledb ${OUTPUT_ROOT}/compile_commands.json load includes
+    from compiledb ${OUTPUT_ROOT}/compile_commands.json load include_dirs
     from compiledb ${OUTPUT_ROOT}/other_compile_commands.json load sources
-    from compiledb ${OUTPUT_ROOT}/third.json load sources, includes
+    from compiledb ${OUTPUT_ROOT}/third.json load sources, include_dirs
     
     # You may also manually include single directories
     include_dir ${SOURCE_ROOT}/includes/test
@@ -169,6 +169,9 @@ Use `RUST_LOG=include-extract=info` to print out all parsed include information
 Use `RUST_LOG=full-file-list=info` to print out all files found by globbing for sources
 
 Use `RUST_LOG=gn-path=info` to print out all files found by globbing for sources
+
+Use `RUST_LOG=compile-db=info` to print out information parsed from the compilation database
+Use `RUST_LOG=compile-db=debug` to debug parsing of the compilation database
 
 ## Releasing
 

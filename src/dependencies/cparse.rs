@@ -90,8 +90,7 @@ pub async fn extract_includes(
 
             if let Some(p) = include_dirs
                 .iter()
-                .filter_map(|i| try_resolve(i, &relative_path))
-                .next()
+                .find_map(|i| try_resolve(i, &relative_path))
             {
                 result.push(p);
             } else {

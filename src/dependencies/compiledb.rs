@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use tokio::{fs::File, io::AsyncReadExt as _};
+use tracing::debug;
 
 use std::path::PathBuf;
 
@@ -104,6 +105,11 @@ pub async fn parse_compile_database(path: &str) -> Result<Vec<SourceFileEntry>, 
                 || e.file.ends_with(".hpp")
         })
         .map(SourceFileEntry::try_from)
+        .inspect(|r| {
+            if let Err(e) = r {
+                debug!(target: "compile-db", "Failed to parse: {:?}", e);
+            }
+        })
         .filter_map(|r| r.ok())
         .collect())
 }
