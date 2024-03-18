@@ -5,14 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
- 1.1.1 (2024-03-02)
+ 1.2.0 (2024-03-18)
 
 # Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 24 commits contributed to the release over the course of 3 calendar days.
- - 3 days passed between releases.
+ - 27 commits contributed to the release over the course of 19 calendar days.
+ - 19 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Add more debug capabilities for compiledb, make the compiledb load more clear ([`cc5084c`](https://github.com/andy31415/igraph/commit/cc5084c8d991b4a0532ab8e7cd5499de064fecf4))
+    - Crates update ([`2b88e68`](https://github.com/andy31415/igraph/commit/2b88e68b1c5abe2f20eba0dbcf8cc3a5bdfc46f7))
+    - Adjusting changelogs prior to release of include-graph v1.1.1 ([`a76a49a`](https://github.com/andy31415/igraph/commit/a76a49abad65f6a19be4cc90eb9271d44b5ce7c1))
     - Clippy fix ([`00e32ed`](https://github.com/andy31415/igraph/commit/00e32ed7a574dc07bdfc893aa5e1febea900331b))
     - Format and slight output update ([`a1af81c`](https://github.com/andy31415/igraph/commit/a1af81cdf839a1f5fbcd2db303503ec50713e9c2))
     - Bold edges now work ([`543ed2c`](https://github.com/andy31415/igraph/commit/543ed2cb7ecc37411ca79f7419c7fcc3ce9b6842))
@@ -48,6 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Prepare for edge coloring ([`23a0beb`](https://github.com/andy31415/igraph/commit/23a0beba4fa5d2230857c93ad39b609af2ddd647))
     - Adjusting changelogs prior to release of include-graph v1.0.7 ([`e555836`](https://github.com/andy31415/igraph/commit/e555836439e655d2d38b516fa2e4bca1c7c3387f))
 </details>
+
+ 1.1.1 (2024-03-02)
 
  1.1.0 (2024-03-01)
 
