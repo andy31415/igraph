@@ -5,13 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
- 1.2.1 (2024-03-18)
+ 1.2.2 (2024-03-18)
 
 # Commit Statistics
 
 <csr-read-only-do-not-edit/>
 
- - 29 commits contributed to the release over the course of 19 calendar days.
+ - 31 commits contributed to the release over the course of 19 calendar days.
  - 19 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Add additional warning for invalid compiledb (this caught me several times). Set default log level to warn. ([`5a28711`](https://github.com/andy31415/igraph/commit/5a28711b1ce8167918f2d55ebb8212148bcf2f89))
+    - Adjusting changelogs prior to release of include-graph v1.2.1 ([`bb6eed2`](https://github.com/andy31415/igraph/commit/bb6eed23f93f002151dccb30f4460d2cbe72df80))
     - Create examples subdir and provide some png to make the readme look pretty ([`8100eae`](https://github.com/andy31415/igraph/commit/8100eae3abd6ba27c49da163cb7b35a44a73d2f5))
     - Adjusting changelogs prior to release of include-graph v1.2.0 ([`24181e3`](https://github.com/andy31415/igraph/commit/24181e3d5df48baaf14a5de45fb443701ce112ce))
     - Add more debug capabilities for compiledb, make the compiledb load more clear ([`cc5084c`](https://github.com/andy31415/igraph/commit/cc5084c8d991b4a0532ab8e7cd5499de064fecf4))
@@ -53,6 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Prepare for edge coloring ([`23a0beb`](https://github.com/andy31415/igraph/commit/23a0beba4fa5d2230857c93ad39b609af2ddd647))
     - Adjusting changelogs prior to release of include-graph v1.0.7 ([`e555836`](https://github.com/andy31415/igraph/commit/e555836439e655d2d38b516fa2e4bca1c7c3387f))
 </details>
+
+ 1.2.1 (2024-03-18)
 
  1.2.0 (2024-03-18)
 
