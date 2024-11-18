@@ -1,12 +1,9 @@
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{collections::HashMap, path::PathBuf, process::Command};
 
 use serde::Deserialize;
 use tracing::{error, info};
 
+use super::canonicalize::canonicalize_cached;
 use super::error::Error;
 
 #[derive(Debug, PartialEq)]
@@ -27,24 +24,20 @@ struct SourcesData {
 }
 
 pub fn load_gn_targets(
-    gn_dir: &Path,
-    source_root: &Path,
+    gn_dir: PathBuf,
+    source_root: PathBuf,
     target: &str,
 ) -> Result<Vec<GnTarget>, Error> {
     // TODO: GN PATH?
     let mut command = Command::new("/usr/bin/gn");
+    let source_root = canonicalize_cached(source_root).map_err(|e| Error::Internal {
+        message: format!("Canonical path: {:?}", e),
+    })?;
+
     command.arg("desc");
     command.arg("--format=json");
-    command.arg(format!(
-        "--root={}",
-        source_root
-            .canonicalize()
-            .map_err(|e| Error::Internal {
-                message: format!("Canonical path: {:?}", e),
-            })?
-            .to_string_lossy(),
-    ));
-    command.arg(gn_dir.canonicalize().map_err(|e| Error::Internal {
+    command.arg(format!("--root={}", source_root.to_string_lossy()));
+    command.arg(canonicalize_cached(gn_dir).map_err(|e| Error::Internal {
         message: format!("Canonical path: {:?}", e),
     })?);
     command.arg(target);
@@ -91,17 +84,16 @@ pub fn load_gn_targets(
                 sources: sources
                     .into_iter()
                     .filter_map(|s| {
-                        if s.starts_with("//") {
+                        let p = if s.starts_with("//") {
                             // paths starting with // are relative to the source root
-                            let mut path = PathBuf::from(source_root);
+                            let mut path = source_root.clone();
                             path.push(PathBuf::from(&s.as_str()[2..]));
                             path
                         } else {
                             // otherwise assume absolute and use as-is
                             PathBuf::from(&s.as_str())
-                        }
-                        .canonicalize()
-                        .ok()
+                        };
+                        canonicalize_cached(p).ok()
                     })
                     .inspect(|path| {
                         info!(target: "gn-path", " - {:?}", path);

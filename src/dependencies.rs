@@ -1,3 +1,4 @@
+pub mod canonicalize;
 pub mod compiledb;
 pub mod configfile;
 pub mod cparse;

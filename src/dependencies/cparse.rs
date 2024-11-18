@@ -1,3 +1,4 @@
+use super::canonicalize::canonicalize_cached;
 use super::error::Error;
 
 use regex::Regex;
@@ -14,7 +15,7 @@ use tracing::{error, info, trace};
 /// Attempt to make the full path of head::tail
 /// returns None if that fails (e.g. path does not exist)
 fn try_resolve(head: &Path, tail: &PathBuf) -> Option<PathBuf> {
-    head.join(tail).canonicalize().ok()
+    canonicalize_cached(head.join(tail)).ok()
 }
 
 #[derive(PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
@@ -118,7 +119,7 @@ where
 
     for entry in paths {
         let path = match entry {
-            Ok(value) => value.canonicalize().map_err(|e| Error::Internal {
+            Ok(value) => canonicalize_cached(value).map_err(|e| Error::Internal {
                 message: format!("{:?}", e),
             })?,
             Err(e) => {

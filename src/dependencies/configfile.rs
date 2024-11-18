@@ -127,6 +127,9 @@ struct ConfigurationFile {
     /// What inputs are to be processed
     input_commands: Vec<InputCommand>,
 
+    /// Should symlinks be resolved, or left alone? Enabling symlink resolution
+    /// can be significantly slower on large code bases.
+
     /// Instructions to build a braph
     graph: GraphInstructions,
 }
@@ -926,11 +929,8 @@ pub fn build_graph(input: &str) -> Result<Graph, Report> {
                 target,
                 source_root,
                 ignore_targets,
-            } => match load_gn_targets(
-                &PathBuf::from(gn_root),
-                &PathBuf::from(source_root),
-                &target,
-            ) {
+            } => match load_gn_targets(PathBuf::from(gn_root), PathBuf::from(source_root), &target)
+            {
                 Ok(targets) => g.add_groups_from_gn(targets, ignore_targets),
                 Err(e) => error!("Failed to load GN targets: {:?}", e),
             },
@@ -1109,7 +1109,7 @@ mod tests {
         graph {
               map {
               }
-   
+
               group {
                 gn root test1 target //my/target/* sources srcs1
                 gn root test/${Foo}/blah target //* sources ${Foo} ignore targets {

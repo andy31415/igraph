@@ -4,7 +4,8 @@ use std::io::Read;
 use std::path::PathBuf;
 use tracing::debug;
 
-use crate::dependencies::error::Error;
+use super::canonicalize::canonicalize_cached;
+use super::error::Error;
 
 #[derive(Debug, PartialEq, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct SourceFileEntry {
@@ -45,13 +46,10 @@ impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
             source_file
         };
 
-        let file_path = file_path
-            .canonicalize()
-            .map_err(|source| Error::FileIOError {
-                source,
-                path: file_path.clone(),
-                message: "canonicalize",
-            })?;
+        let file_path = canonicalize_cached(file_path).map_err(|source| Error::IOError {
+            source,
+            message: "canonicalize",
+        })?;
 
         let args = value
             .arguments
@@ -63,7 +61,7 @@ impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
             .map(PathBuf::from)
             .filter_map(|p| {
                 if p.is_relative() {
-                    start_dir.join(p).canonicalize().ok()
+                    canonicalize_cached(start_dir.join(p)).ok()
                 } else {
                     Some(p)
                 }
