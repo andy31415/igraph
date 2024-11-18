@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-use tokio::{fs::File, io::AsyncReadExt as _};
-use tracing::debug;
-
+use std::fs::File;
+use std::io::Read;
 use std::path::PathBuf;
+use tracing::debug;
 
 use crate::dependencies::error::Error;
 
@@ -45,11 +45,13 @@ impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
             source_file
         };
 
-        let file_path = file_path.canonicalize().map_err(|source| Error::IOError {
-            source,
-            path: file_path.clone(),
-            message: "canonicalize",
-        })?;
+        let file_path = file_path
+            .canonicalize()
+            .map_err(|source| Error::FileIOError {
+                source,
+                path: file_path.clone(),
+                message: "canonicalize",
+            })?;
 
         let args = value
             .arguments
@@ -75,8 +77,8 @@ impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
     }
 }
 
-pub async fn parse_compile_database(path: &str) -> Result<Vec<SourceFileEntry>, Error> {
-    let mut file = File::open(path).await.map_err(|source| Error::IOError {
+pub fn parse_compile_database(path: &str) -> Result<Vec<SourceFileEntry>, Error> {
+    let mut file = File::open(path).map_err(|source| Error::FileIOError {
         source,
         path: path.into(),
         message: "open",
@@ -84,8 +86,7 @@ pub async fn parse_compile_database(path: &str) -> Result<Vec<SourceFileEntry>, 
     let mut json_string = String::new();
 
     file.read_to_string(&mut json_string)
-        .await
-        .map_err(|source| Error::IOError {
+        .map_err(|source| Error::FileIOError {
             source,
             path: path.into(),
             message: "read_to_string",

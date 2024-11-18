@@ -1,10 +1,10 @@
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
+    process::Command,
 };
 
 use serde::Deserialize;
-use tokio::process::Command;
 use tracing::{error, info};
 
 use super::error::Error;
@@ -26,7 +26,7 @@ struct SourcesData {
     sources: Option<Vec<String>>,
 }
 
-pub async fn load_gn_targets(
+pub fn load_gn_targets(
     gn_dir: &Path,
     source_root: &Path,
     target: &str,
@@ -50,7 +50,7 @@ pub async fn load_gn_targets(
     command.arg(target);
     command.arg("sources");
 
-    let output = command.output().await.map_err(|e| Error::Internal {
+    let output = command.output().map_err(|e| Error::Internal {
         message: format!("Canonical path: {:?}", e),
     })?;
 
