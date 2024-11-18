@@ -38,3 +38,10 @@ camino = "1.1.6"
 tera = "1.19.1"
 eyre = "0.6.12"
 color-eyre = "0.6.2"
+
+# Add a profile to all targets that enables release optimisations, but
+# retains debug symbols. This is great for use with
+# benchmarking/profiling tools.
+[profile.release-with-debug]
+inherits = "release"
+debug = true
