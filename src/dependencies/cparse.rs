@@ -4,7 +4,7 @@ use regex::Regex;
 use std::{
     fmt::Debug,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, LazyLock},
 };
 use tokio::{
     fs::File,
@@ -41,6 +41,9 @@ impl FileType {
     }
 }
 
+static INCLUDE_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r##"^\s*#include\s*(["<])([^">]*)[">]"##).unwrap());
+
 /// Given a C-like source, try to resolve includes.
 ///
 /// Includes are generally of the form `#include <name>` or `#include "name"`
@@ -55,8 +58,6 @@ pub async fn extract_includes(
     })?;
 
     let reader = BufReader::new(f);
-
-    let inc_re = Regex::new(r##"^\s*#include\s*(["<])([^">]*)[">]"##).unwrap();
 
     let mut result = Vec::new();
     let parent_dir = PathBuf::from(path.parent().unwrap());
@@ -75,7 +76,7 @@ pub async fn extract_includes(
             None => break,
         };
 
-        if let Some(captures) = inc_re.captures(&line) {
+        if let Some(captures) = INCLUDE_REGEX.captures(&line) {
             let inc_type = captures.get(1).unwrap().as_str();
             let relative_path = PathBuf::from(captures.get(2).unwrap().as_str());
 
