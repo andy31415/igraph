@@ -29,6 +29,11 @@ pub enum Error {
     #[error("Subtask join error")]
     JoinError,
 
+    // Unfortunately, in most cases where this error can occur the path is no
+    // longer available to avoid unnecessary cloning in the hot path.
+    #[error("Required file not found")]
+    FileNotFound,
+
     #[error("Internal error")]
     Internal { message: String },
 

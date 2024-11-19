@@ -15,12 +15,7 @@ use tracing::{error, info, trace};
 /// Attempt to make the full path of head::tail
 /// returns None if that fails (e.g. path does not exist)
 fn try_resolve(head: &Path, tail: &Path) -> Option<PathBuf> {
-    let path = head.join(tail);
-    if !path.exists() {
-        return None;
-    }
-
-    canonicalize_cached(head.join(tail)).ok()
+    canonicalize_cached(head.join(tail)).ok()?
 }
 
 #[derive(PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
@@ -124,9 +119,11 @@ where
 
     for entry in paths {
         let path = match entry {
-            Ok(value) => canonicalize_cached(value).map_err(|e| Error::Internal {
-                message: format!("{:?}", e),
-            })?,
+            Ok(value) => canonicalize_cached(value)
+                .map_err(|e| Error::Internal {
+                    message: format!("{:?}", e),
+                })?
+                .ok_or(Error::FileNotFound)?,
             Err(e) => {
                 return Err(Error::Internal {
                     message: format!("{:?}", e),

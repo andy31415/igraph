@@ -46,10 +46,12 @@ impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
             source_file
         };
 
-        let file_path = canonicalize_cached(file_path).map_err(|source| Error::IOError {
-            source,
-            message: "canonicalize",
-        })?;
+        let file_path = canonicalize_cached(file_path)
+            .map_err(|source| Error::IOError {
+                source,
+                message: "canonicalize",
+            })?
+            .ok_or(Error::FileNotFound)?;
 
         let args = value
             .arguments
@@ -61,7 +63,7 @@ impl TryFrom<CompileCommandsEntry> for SourceFileEntry {
             .map(PathBuf::from)
             .filter_map(|p| {
                 if p.is_relative() {
-                    canonicalize_cached(start_dir.join(p)).ok()
+                    canonicalize_cached(start_dir.join(p)).ok()?
                 } else {
                     Some(p)
                 }
