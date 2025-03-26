@@ -1,11 +1,11 @@
 use std::{
     collections::{HashMap, HashSet},
+    io::{BufWriter, Write},
     path::{Path, PathBuf},
 };
 
 use serde::Serialize;
 use tera::{Context, Tera};
-use tokio::io::{AsyncWrite, AsyncWriteExt, BufWriter};
 use tracing::{debug, error};
 
 use super::{error::Error, gn::GnTarget, path_mapper::PathMapping};
@@ -123,10 +123,7 @@ pub struct Graph {
 }
 
 impl Graph {
-    pub async fn write_dot<D>(&self, dest: D) -> Result<(), Error>
-    where
-        D: AsyncWrite + Unpin,
-    {
+    pub fn write_dot<D: Write>(&self, dest: D) -> Result<(), Error> {
         let mut writer = BufWriter::new(dest);
 
         let mut tera = Tera::default();
@@ -143,12 +140,11 @@ impl Graph {
                 .to_string()
                 .as_bytes(),
             )
-            .await
-            .map_err(|source| Error::AsyncIOError {
+            .map_err(|source| Error::IOError {
                 source,
-                message: "Error writing.",
+                message: "Error writing dot file.",
             })?;
-        writer.flush().await.map_err(|source| Error::AsyncIOError {
+        writer.flush().map_err(|source| Error::IOError {
             source,
             message: "Error flushing writer.",
         })

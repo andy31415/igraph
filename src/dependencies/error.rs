@@ -1,21 +1,19 @@
 use std::path::PathBuf;
 
-use tokio::task::JoinError;
-
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("I/O error at path {}: {}", path.to_string_lossy(), message)]
+    #[error("I/O error: {}", message)]
     IOError {
         #[source]
         source: std::io::Error,
-        path: PathBuf,
         message: &'static str,
     },
 
-    #[error("I/O error: {}", message)]
-    AsyncIOError {
+    #[error("I/O error at path {}: {}", path.to_string_lossy(), message)]
+    FileIOError {
         #[source]
-        source: tokio::io::Error,
+        source: std::io::Error,
+        path: PathBuf,
         message: &'static str,
     },
 
@@ -25,8 +23,16 @@ pub enum Error {
     #[error("Failed to parse JSON")]
     JsonParseError(serde_json::Error),
 
+    // std::thread panics do not return printable values by default, and while
+    // it might be possible to upcast to a `dyn Debug`, it is hardly worth it
+    // here.
     #[error("Subtask join error")]
-    JoinError(JoinError),
+    JoinError,
+
+    // Unfortunately, in most cases where this error can occur the path is no
+    // longer available to avoid unnecessary cloning in the hot path.
+    #[error("Required file not found")]
+    FileNotFound,
 
     #[error("Internal error")]
     Internal { message: String },

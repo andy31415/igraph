@@ -127,6 +127,9 @@ struct ConfigurationFile {
     /// What inputs are to be processed
     input_commands: Vec<InputCommand>,
 
+    /// Should symlinks be resolved, or left alone? Enabling symlink resolution
+    /// can be significantly slower on large code bases.
+
     /// Instructions to build a braph
     graph: GraphInstructions,
 }
@@ -756,7 +759,7 @@ fn parse_config(input: &str) -> IResult<&str, ConfigurationFile> {
         .parse(input)
 }
 
-pub async fn build_graph(input: &str) -> Result<Graph, Report> {
+pub fn build_graph(input: &str) -> Result<Graph, Report> {
     let (input, config) = parse_config(input)
         .map_err(|e| Error::ConfigParseError {
             message: format!("Nom error: {:?}", e),
@@ -783,7 +786,7 @@ pub async fn build_graph(input: &str) -> Result<Graph, Report> {
                 load_include_directories,
                 load_sources,
             } => {
-                let entries = match parse_compile_database(&path).await {
+                let entries = match parse_compile_database(&path) {
                     Ok(entries) => entries,
                     Err(err) => {
                         error!("Error parsing compile database {}: {:?}", path, err);
@@ -817,7 +820,7 @@ pub async fn build_graph(input: &str) -> Result<Graph, Report> {
                         .into_iter()
                         .collect::<Vec<_>>();
                     for entry in entries {
-                        match extract_includes(&entry.file_path, &includes_array).await {
+                        match extract_includes(&entry.file_path, &includes_array) {
                             Ok(includes) => {
                                 info!(target: "compile-db", "Loaded {:?} with includes {:#?}", &entry.file_path, includes);
                                 dependency_data.files.push(SourceWithIncludes {
@@ -851,7 +854,7 @@ pub async fn build_graph(input: &str) -> Result<Graph, Report> {
                     .clone()
                     .into_iter()
                     .collect::<Vec<_>>();
-                match all_sources_and_includes(glob, &includes_array).await {
+                match all_sources_and_includes(glob, &includes_array) {
                     Ok(data) => {
                         if data.is_empty() {
                             error!("GLOB {:?} resulted in EMPTY file list!", g);
@@ -926,12 +929,7 @@ pub async fn build_graph(input: &str) -> Result<Graph, Report> {
                 target,
                 source_root,
                 ignore_targets,
-            } => match load_gn_targets(
-                &PathBuf::from(gn_root),
-                &PathBuf::from(source_root),
-                &target,
-            )
-            .await
+            } => match load_gn_targets(PathBuf::from(gn_root), PathBuf::from(source_root), &target)
             {
                 Ok(targets) => g.add_groups_from_gn(targets, ignore_targets),
                 Err(e) => error!("Failed to load GN targets: {:?}", e),
@@ -1111,7 +1109,7 @@ mod tests {
         graph {
               map {
               }
-   
+
               group {
                 gn root test1 target //my/target/* sources srcs1
                 gn root test/${Foo}/blah target //* sources ${Foo} ignore targets {

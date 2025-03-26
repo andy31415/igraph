@@ -1,22 +1,21 @@
+use super::canonicalize::canonicalize_cached;
 use super::error::Error;
 
 use regex::Regex;
 use std::{
     fmt::Debug,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
-use tokio::{
     fs::File,
-    io::{AsyncBufReadExt as _, BufReader},
-    task::JoinSet,
+    io::{BufRead, BufReader},
+    path::{Path, PathBuf},
+    sync::{Arc, LazyLock},
+    thread,
 };
 use tracing::{error, info, trace};
 
 /// Attempt to make the full path of head::tail
 /// returns None if that fails (e.g. path does not exist)
-fn try_resolve(head: &Path, tail: &PathBuf) -> Option<PathBuf> {
-    head.join(tail).canonicalize().ok()
+fn try_resolve(head: &Path, tail: &Path) -> Option<PathBuf> {
+    canonicalize_cached(head.join(tail)).ok()?
 }
 
 #[derive(PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
@@ -41,41 +40,33 @@ impl FileType {
     }
 }
 
+static INCLUDE_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r##"^\s*#include\s*(["<])([^">]*)[">]"##).unwrap());
+
 /// Given a C-like source, try to resolve includes.
 ///
 /// Includes are generally of the form `#include <name>` or `#include "name"`
-pub async fn extract_includes(
-    path: &PathBuf,
-    include_dirs: &[PathBuf],
-) -> Result<Vec<PathBuf>, Error> {
-    let f = File::open(path).await.map_err(|source| Error::IOError {
+pub fn extract_includes(path: &PathBuf, include_dirs: &[PathBuf]) -> Result<Vec<PathBuf>, Error> {
+    let f = File::open(path).map_err(|source| Error::FileIOError {
         source,
         path: path.clone(),
         message: "open",
     })?;
 
     let reader = BufReader::new(f);
-
-    let inc_re = Regex::new(r##"^\s*#include\s*(["<])([^">]*)[">]"##).unwrap();
-
     let mut result = Vec::new();
     let parent_dir = PathBuf::from(path.parent().unwrap());
 
-    let mut lines = reader.lines();
+    let lines = reader.lines();
 
-    loop {
-        let line = lines.next_line().await.map_err(|source| Error::IOError {
+    for line in lines {
+        let line = line.map_err(|source| Error::FileIOError {
             source,
             path: path.clone(),
             message: "line read",
         })?;
 
-        let line = match line {
-            Some(value) => value,
-            None => break,
-        };
-
-        if let Some(captures) = inc_re.captures(&line) {
+        if let Some(captures) = INCLUDE_REGEX.captures(&line) {
             let inc_type = captures.get(1).unwrap().as_str();
             let relative_path = PathBuf::from(captures.get(2).unwrap().as_str());
 
@@ -115,7 +106,7 @@ pub struct SourceWithIncludes {
 }
 
 /// Given a list of paths, figure out their dependencies
-pub async fn all_sources_and_includes<I, E>(
+pub fn all_sources_and_includes<I, E>(
     paths: I,
     includes: &[PathBuf],
 ) -> Result<Vec<SourceWithIncludes>, Error>
@@ -124,14 +115,15 @@ where
     E: Debug,
 {
     let includes = Arc::new(Vec::from(includes));
-
-    let mut join_set = JoinSet::new();
+    let mut handles = Vec::new();
 
     for entry in paths {
         let path = match entry {
-            Ok(value) => value.canonicalize().map_err(|e| Error::Internal {
-                message: format!("{:?}", e),
-            })?,
+            Ok(value) => canonicalize_cached(value)
+                .map_err(|e| Error::Internal {
+                    message: format!("{:?}", e),
+                })?
+                .ok_or(Error::FileNotFound)?,
             Err(e) => {
                 return Err(Error::Internal {
                     message: format!("{:?}", e),
@@ -144,27 +136,27 @@ where
             continue;
         }
 
-        // prepare data to mve into sub-task
+        // prepare data to move into sub-task
         let includes = includes.clone();
 
-        join_set.spawn(async move {
+        handles.push(thread::spawn(move || {
             trace!("PROCESS: {:?}", path);
-            let includes = match extract_includes(&path, &includes).await {
+            let includes = match extract_includes(&path, &includes) {
                 Ok(value) => value,
                 Err(e) => {
-                    error!("Error extracing includes: {:?}", e);
+                    error!("Error extracting includes: {:?}", e);
                     return Err(e);
                 }
             };
 
             Ok(SourceWithIncludes { path, includes })
-        });
+        }));
     }
 
     let mut results = Vec::new();
-    while let Some(h) = join_set.join_next().await {
-        let r = h.map_err(Error::JoinError)?;
-        results.push(r?)
+    for handle in handles {
+        let res = handle.join().map_err(|_| Error::JoinError)?;
+        results.push(res?);
     }
 
     Ok(results)
